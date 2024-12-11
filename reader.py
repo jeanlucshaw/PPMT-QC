@@ -1,6 +1,7 @@
 import pandas as pd
 import re
 from __init__ import CALFILES_LOOKUP
+from seabird_names import seabird_name_to_unit
 
 # ----------
 # Parameters
@@ -403,13 +404,15 @@ def read_cnv_metadata(filename, short_names=True):
             else:
                 name = full_name
             metadata['names'].append(name.lower())
-            metadata['seabird_names'].append(full_name.split(':')[0])
+            seabird_name = full_name.split(':')[0]
+            metadata['seabird_names'].append(seabird_name)
+            metadata['units'].append(seabird_name_to_unit(seabird_name))
 
-            if re.findall('\[.*\]', L):
-                units = re.findall('\[.*\]', L)[0].strip('[]')
-                metadata['units'].append(units)
-            else:
-                metadata['units'].append('')
+            # if re.findall('\[.*\]', L):
+            #     units = re.findall('\[.*\]', L)[0].strip('[]')
+            #     metadata['units'].append(units)
+            # else:
+            #     metadata['units'].append('')
 
         # Scan for end of header
         if re.search('\*END\*', L):

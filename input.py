@@ -1,7 +1,11 @@
-from reader import *
 import gsw
 import re
 import numpy as np
+from __init__ import UNITS
+from reader import *
+from pint import UnitRegistry
+ureg = UnitRegistry()
+ureg.define('practical_salinity_unit = [] = psu')
 
 
 def manage_file_type(data, metadata):
@@ -151,6 +155,33 @@ def manage_file_type(data, metadata):
     standard_header['mli_calibration'] = mli_calibration
 
     return data, standard_header
+
+
+def manage_cnv_units(data, header):
+    """
+    Ensure cnv data is always in the same units.
+
+    Parameters
+    ----------
+    data : pandas.DataFrame
+        data output of `reader.read_cnv_data`
+    header : dict
+        metadata output of `reader.read_cnv_metadata`
+
+    Returns
+    -------
+    data : pandas.DataFrame
+        with variables converted as specified in `__init__.py`
+
+    """
+    for n_, u_ in zip(header['names'], header['units']):
+        if 'time' not in n_:
+            if 'julian' in u_:
+                u_ = 'days'
+            variable = ureg.Quantity(data[n_].values, ureg.parse_expression(u_))
+            data[n_] = variable.to(UNITS[n_]).magnitude
+
+    return data
 
 # for f in UNPROCESSED:
 #     print(f)

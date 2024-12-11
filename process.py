@@ -6,7 +6,7 @@ import pandas as pd
 import numpy as np
 import xarray as xr
 from __init__ import UNPROCESSED
-from input import manage_file_type
+from input import *
 from output import init_output
 from reader import *
 from drift import *
@@ -26,6 +26,7 @@ if ext == '.csv':
 elif ext == '.cnv':
     header = read_cnv_metadata(filename)
     data = read_cnv(filename)
+    data = manage_cnv_units(data, header)
 else:
     print('Unknown file format', ext)
 
@@ -51,3 +52,4 @@ data, header = manage_drift_correction(data, header, calibration_data)
 # -------------
 # Visualization
 # -------------
+

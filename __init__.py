@@ -3,8 +3,14 @@ import pandas as pd
 import re
 import os
 
+# ----------
 # Parameters
+# ----------
+
+# For conversions to/from Julian days
 TIME_ORIGIN = pd.Timestamp('2000-01-01T00:00:00')
+
+# Drift correction thresholds
 THRESHOLDS = {
     'temperature' : 0.01,       # (degrees Celsius)
     'salinity': 0.05,           # (Practical salinity units)
@@ -12,7 +18,20 @@ THRESHOLDS = {
     'depth': 1.0                # (meters)
 }
 
+# Standardize cnv data to these units (as understood by the `pint` module)
+UNITS = {
+    'temperature': 'degree_Celsius',
+    'salinity': 'practical_salinity_unit',
+    'depth': 'meter',
+    'pressure': 'decibar',
+    'conductivity': 'siemens / meter',
+    'flag': ''
+}
+
+# --------------------
 # File path management
+# --------------------
+
 TOP = r'S:\Soutien technique DAISS\PPMT'
 UNPROCESSED_PPMT_DIR = r'%s\Donnees\non traite' % TOP
 UNPROCESSED_MOORING_DIR = r'%s\Donnees\Mouillage\non traite' % TOP

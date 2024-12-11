@@ -1,0 +1,138 @@
+expression,variable,unit_string,units
+accM,acceleration,m/s^2,m/s^2
+altM,altimeter,m,m
+alt,altimeter,m,m
+bat[0-9],beamAttenuation,1/m,1/m
+C2-C1mS/cm,conductivityDifference,mS/cm,mS/cm
+C2-C1S/m,conductivityDifference,S/m,S/m
+C2-C1uS/cm,conductivityDifference,uS/cm,uS/cm
+cond[0-9]mS/cm,conductivity,mS/cm,mS/cm
+cond[0-9]S/m,conductivity,S/m,S/m
+cond[0-9]uS/cm,conductivity,uS/cm,uS/cm
+CStarAt[0-9],beamAttenuation,1/m,1/m
+CStarTr[0-9],beamTransmission,percent,percent
+c[0-9]mS/cm,conductivity,mS/cm,mS/cm
+c[0-9]S/m,conductivity,S/m,S/m
+c[0-9]uS/cm,conductivity,uS/cm,uS/cm
+density[0-9][0-9],density,kg/m^3,kg/m^3
+depFM,depth,m,m
+depF,depth,m,m
+depSM,depth,m,m
+depS,depth,m,m
+dz/dtM,descentRate,m/s,m/s
+flCM,fluorescence,ug/l; Chelsea Mini Chl Con,ug/l
+flCUVA[0-9],fluorescence,ug/l; Chelsea UV Aquatracka,ug/l
+flC[0-9],fluorescence,ug/l; Chelsea Aqua 3,ug/l
+flEC-AFL[0-9],fluorescence,mg/m^3; WET Labs ECO-AFL/FLtab,mg/m^3
+flScufa[0-9],fluorescence,-; Turner SCUFA (RFU),-
+flSPR,fluorescence,-; Seapoint,-
+flSPuv,fluorescence,-; Seapoint,-
+flSP,fluorescence,-; Seapoint,-
+flS,fluorescence,-; Seatech,-
+flT,fluorescence,-; Turner 10-005 flT,-
+f[0-9],frequency,Hz,Hz
+f[0-9][0-9],frequency,Hz,Hz
+gpa,geopotentialAnomaly,-; J/kg,-
+latitude,latitude,degN,degN
+longitude,longitude,degE,degE
+n2satMg/L,nitrogenSaturation,mg/l,mg/l
+n2satML/L,nitrogenSaturation,ml/l,ml/l
+n2satumol/kg,nitrogenSaturation,umol/kg,umol/kg
+nbin,nbin,,
+obsscufa[0-9],backscatter,NTU; Turner SCUFA,NTU
+opoxMg/L,oxygen,mg/l; Optode,mg/l
+opoxML/L,oxygen,ml/l; Optode,ml/l
+opoxMm/L,oxygen,umol/l; Optode,umol/l
+opoxPS,oxygen,percent; Optode,percent
+oxsatMg/L,oxygen,mg/l; Weiss,mg/l
+oxsatML/L,oxygen,ml/l; Weiss,ml/l
+oxsatMm/Kg,oxygen,umol/kg; Weiss,umol/kg
+oxsolMg/L,oxygen,mg/l; Garcia-Gordon,mg/l
+oxsolML/L,oxygen,ml/l; Garcia-Gordon,ml/l
+oxsolMm/Kg,oxygen,umol/kg; Garcia-Gordon,umol/kg
+par/log,PAR,log; Satlantic,log
+par[0-9],PAR,-; Biospherical/Licor,-
+ph,pH,-,-
+potemp[0-9]68C,thetaM,degC; IPTS-68,degC
+potemp[0-9]90C,thetaM,degC; ITS-90,degC
+pr50M,pressure,dbar; SBE50,dbar
+prDE,pressure,psi; digiquartz,psi
+prdE,pressure,psi; strain gauge,psi
+prDM,pressure,dbar; digiquartz,dbar
+prdM,pressure,dbar; strain gauge,dbar
+prM,pressure,dbar,dbar
+prSM,pressure,dbar,dbar
+prSM,pressure,dbar; strain gauge,dbar
+pr,pressure,dbar,dbar
+ptempC,pressureTemperature,degC; ITS-90,degC
+pumps,pumpStatus,,
+rhodflTC[0-9],Rhodamine,ppb; Turner Cyclops,ppb
+sal[0-9][0-9],salinity,psu,psu
+sbeox[0-9]ML/L,oxygen,ml/l; SBE43,ml/l
+sbeox[0-9]Mm/Kg,oxygen,umol/kg; SBE43,umol/kg
+sbeox[0-9]Mm/L,oxygen,umol/l; SBE43,umol/l
+sbeox[0-9]PS,oxygen,percent; SBE43,percent
+sbeox[0-9]V,oxygenRaw,V; SBE43,V
+sbox[0-9]dV/dT,oxygen,dov/dt; SBE43,dov/dt
+sbox[0-9]ML/L,oxygen,ml/l; SBE43,ml/l
+sbox[0-9]Mm/Kg,oxygen,umol/kg; SBE43,umol/kg
+sbox[0-9]Mm/L,oxygen,umol/l; SBE43,umol/l
+sbox[0-9]PS,oxygen,percent; SBE43,percent
+sbox[0-9]V,oxygenRaw,V; SBE43,V
+scan,scan,-,-
+seaTurbMtr[0-9],turbidity,FTU; Seapoint,FTU
+secS-priS,salinityDifference,-,-
+sigma-é,sigmaTheta,kg/m^3,kg/m^3
+sigma-t,sigmaT,kg/m^3,kg/m^3
+sigma-theta,sigmaTheta,kg/m^3,kg/m^3
+spar,spar,-,-
+specc,conductivity,uS/cm,uS/cm
+sva,specificVolumeAnomaly,1e-8 m^3/kg;,1e-8 m^3/kg
+svCM[0-9],soundSpeed,m/s; Chen-Millero,m/s
+t090Cm,temperature,degC; ITS-90,degC
+t190C,temperature,degC; ITS-90,degC
+T2[0-9]68C,temperatureDifference,degC; IPTS-68,degC
+T2[0-9]90C,temperatureDifference,degC; ITS-90,degC
+t3868C[0-9],temperature,degC; IPTS-68,degC
+t3890C[0-9],temperature,degC; ITS-90,degC
+t38[0-9]38C,temperature,degC; IPTS-68,degC
+t38[0-9]90C,temperature,degC; ITS-90,degC
+t4968C,temperature,degC; IPTS-68,degC
+t4990C,temperature,degC; ITS-90,degC
+timeH,timeH,hour; elapsed,hour
+timeJV2,timeJV2,julian day,julian day
+timeJ,timeJ,julian day,julian day
+timeK,timeK,s; since Jan 1,s
+timeM,timeM,minute; elapsed,minute
+timeN,timeN,s; NMEA since Jan 1,s
+timeQ,timeQ,s; NMEA since Jan 1,s
+timeS,timeS,s; elapsed,s
+tnc268C,temperature,degC; IPTS-68,degC
+tnc290C,temperature,degC; ITS-90,degC
+tnc68C,temperature,degC; IPTS-68,degC
+tnc90C,temperature,degC; ITS-90,degC
+tsa,thermostericAnomaly,1e-8 m^3/kg,1e-8 m^3/kg
+turbflTCdiff,turbidityDifference,NTU; Turner Cyclops,NTU
+turbflTC[0-9],turbidity,NTU; Turner Cyclops,NTU
+turbWETbbdiff,turbidityDifference,1/(m\*sr); WET Labs ECO,1/(m\*sr)
+turbWETbb[0-9],turbidity,1/(m\*sr); WET Labs ECO,1/(m\*sr)
+turbWETntudiff,turbidityDifference,NTU; WET Labs ECO,NTU
+turbWETntu[0-9],turbidity,NTU; WET Labs ECO,NTU
+tv268C,temperature,degC; IPTS-68,degC
+tv290C,temperature,degC; ITS-90,degC
+t[0-9]68C,temperature,degC; IPTS-68,degC
+t[0-9]68,temperature,degC; IPTS-68,degC
+t[0-9]90C,temperature,degC; ITS-90,degC
+t[0-9]90,temperature,degC; ITS-90,degC
+upoly[0-9],upoly,-,-
+user[0-9],user,-,-
+v[0-9][0-9],voltage,V,V
+wetBAttn,beamAttenuation,1/m; WET Labs AC3,1/m
+wetBTrans,beamTransmission,percent; WET Labs AC3,percent
+wetCDOMdiff,fluorescenceDifference,mg/m^3; WET Labs CDOM,mg/m^3
+wetCDOM[0-9],fluorescence,mg/m^3; WET Labs CDOM,mg/m^3
+wetChAbs,fluorescence,1/m; WET Labs AC3 absorption,1/m
+wetStardiff,fluorescenceDifference,mg/m^3; WET Labs WETstar,mg/m^3
+wetStar[0-9],fluorescence,mg/m^3; WET Labs WETstar,mg/m^3
+xmiss,beamTransmission,percent; Chelsea/Seatech,percent
+xmiss[0-9],beamTransmission,percent; Chelsea/Seatech,percent
