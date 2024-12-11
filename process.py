@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 import xarray as xr
-from __init__ import UNPROCESSED, CALFILES, CALFILES_LOOKUP, TIME_ORIGIN
+from __init__ import UNPROCESSED
 from input import manage_file_type
 from output import init_output
 from reader import *
@@ -40,26 +40,14 @@ data = data.query(f'"{start_date}" < time < "{end_date}"')
 # Get the calibrations for this device
 calibration_data = get_calibration_data(header)
 
-# ----------------
 # Drift correction
-# ----------------
+data, header = manage_drift_correction(data, header, calibration_data)
 
-# Loop over observed variables
-for variable, source in header['data_source'].items():
 
-    # This variable has calibration data
-    if variable in calibration_data.keys():
+# ------------------------------
+# Regional outlier quality flags
+# ------------------------------
 
-        # Interpolate the calibration data -> deviation(time, variable)
-        deviation = interpolate_deviation(calibration_data[variable],
-                                          data,
-                                          variable)
-
-        # Add deviation to the data frame
-        data[f'{variable}_deviation'] = deviation
-
-        # Determine if drift correction must be applied
-
-        # Apply drift correction
-
-        # Save drift correction decision in metadata
+# -------------
+# Visualization
+# -------------

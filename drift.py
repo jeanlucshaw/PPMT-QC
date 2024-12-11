@@ -1,4 +1,4 @@
-from __init__ import TIME_ORIGIN
+from __init__ import TIME_ORIGIN, THRESHOLDS
 from scipy.interpolate import LinearNDInterpolator as LNDI
 from reader import read_calfile
 import pandas as pd
@@ -170,3 +170,62 @@ def interpolate_deviation(caldata, data, param, time='time'):
     # Calculate the interpolated drift time series
     data.loc[:, 'time_num'] = timestamp2numeric(data[time])
     return interpolant(data[['time_num', param]])
+
+
+def manage_drift_correction(data, header, calibration_data):
+    """
+    Apply the sensor drift correction if required.
+
+    Parameters
+    ----------
+    data : pandas.DataFrame
+        data output of `input.manage_file_type`
+    header : dict
+        metadata output of `input.manage_file_type`
+    calibration_data : pandas.DataFrame
+        output of `drift.get_calibration_data`.
+
+    Returns
+    -------
+    data : pandas.DataFrame
+        with the drift correction selectively applied to the required columns.
+    header : dict
+        with an added `drift_correction` field documenting for which observed variables
+        drift correction was applied or not.
+
+    Note
+    ----
+        1) Drift correction is applied to the whole time series for a given variable if the
+           corresponding threshold is met for at least one value in the calibration range, before
+           or after the deployment.
+        2) The difference between calibration and sensor values are written in the calibration
+           files as `calibration - sensor`. To correct drift, this difference is therefore added
+           to the sensor time series.
+
+    """
+    # Loop over observed variables
+    header['drift_correction'] = dict()
+    for variable, source in header['data_source'].items():
+
+        # This variable has calibration data
+        if variable in calibration_data.keys():
+
+            # Determine if drift correction must be applied
+            if (calibration_data[variable]['deviation'].abs() > THRESHOLDS[f'{variable}']).any():
+
+                # Save drift correction decision in metadata
+                header['drift_correction'][variable] = True
+
+                # Interpolate the calibration data -> deviation(time, variable)
+                deviation = interpolate_deviation(calibration_data[variable],
+                                                  data,
+                                                  variable)
+
+                # Apply drift correction
+                data[f'{variable}'] += deviation
+
+            else:
+                # Save drift correction decision in metadata
+                header['drift_correction'][variable] = False
+
+    return data, header

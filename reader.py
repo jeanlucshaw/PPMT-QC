@@ -221,119 +221,8 @@ def probe_calfile(device_serial, deployment_year):
 
     return calfile_params
 
-# def read_calfile(device_serial, sheets=None, variable='temperature'):
-#     """
-#     Read the device calibration data given its serial number
-#
-#     Parameters
-#     ----------
-#     device_serial : int
-#         serial number of the device (excluding 056 or 057)
-#     sheets : None, int or tuple of int
-#         determines what deployment year to consider as the calibration points. If
-#         `None`, the two latest years are considered. If `2-tuple`, the two specified
-#         years are considered. If `int`, the year and the previous (-1) year are
-#         considered.
-#
-#     Returns
-#     -------
-#     calibration_data : pd.DataFrame
-#         containing the dates, standard values, and deviations.
-#
-#     """
-#     # Manage which temperature calibration to get
-#     if variable == 'temperature':
-#         date_cell = (1, 4)
-#         rdxl_kw = dict(names=['standard',
-#                               'nominal',
-#                               'instrument',
-#                               'deviation'],
-#                        skiprows=5,
-#                        nrows=6,
-#                        usecols=[1, 2, 3, 5])
-#     elif variable == 'conductivity_before_cleaning':
-#         date_cell = (20, 4)
-#         rdxl_kw = dict(names=['standard',
-#                               'instrument',
-#                               'deviation',
-#                               'nominal'],
-#                        skiprows=26,
-#                        nrows=4,
-#                        usecols=[1, 2, 3, 4])
-#     elif variable == 'salinity_before_cleaning':
-#         # date_cell = (31, 4)
-#         date_cell = (20, 4)
-#         rdxl_kw = dict(names=['nominal',
-#                               'standard',
-#                               'instrument',
-#                               'deviation'],
-#                        skiprows=26,
-#                        nrows=4,
-#                        usecols=[4, 5, 6, 7])
-#     elif variable == 'conductivity_after_cleaning':
-#         date_cell = (31, 4)
-#         rdxl_kw = dict(names=['standard',
-#                               'instrument',
-#                               'deviation',
-#                               'nominal'],
-#                        skiprows=35,
-#                        nrows=4,
-#                        usecols=[1, 2, 3, 4])
-#     elif variable == 'salinity_after_cleaning':
-#         date_cell = (31, 4)
-#         rdxl_kw = dict(names=['nominal',
-#                               'standard',
-#                               'instrument',
-#                               'deviation'],
-#                        skiprows=35,
-#                        nrows=4,
-#                        usecols=[4, 5, 6, 7])
-#     elif variable == 'depth':
-#         date_cell = (49, 4)
-#         rdxl_kw = dict(names=['standard',
-#                               'instrument',
-#                               'deviation'],
-#                        skiprows=55,
-#                        nrows=10,
-#                        usecols=[4, 5, 6])
-#     else:
-#         allowed_values = ['temperature',
-#                           'salinity_before_cleaning',
-#                           'salinity_after_cleaning',
-#                           'conductivity_before_cleaning',
-#                           'conductivity_after_cleaning',
-#                           'depth']
-#         raise ValueError(f'read_calfile arg `variable` must be in {allowed_values}')
-#
-#     # Find the right calibration file
-#     calfile, = CALFILES_LOOKUP.query(f'serial == "{device_serial}"')['fullpath']
-#
-#     # Get the sheet names for this serial number
-#     sheet_names = pd.ExcelFile(calfile).sheet_names
-#
-#     if sheets == None:
-#         sheet_after, sheet_before = sheet_names[:2]
-#     elif isinstance(sheets, (tuple, list)) and len(sheets) == 2:
-#         sheet_after, sheet_before = sheets
-#     elif isinstance(sheets, (int, float)):
-#         sheet_after, sheet_before = sheets, sheets - 1
-#
-#     # Get calibration date
-#     date_after = pd.Timestamp(pd.read_excel(calfile, sheet_name=sheet_after).iloc[date_cell])
-#     date_before = pd.Timestamp(pd.read_excel(calfile, sheet_name=sheet_before).iloc[date_cell])
-#
-#     # Read the spreadsheets
-#     data_after = pd.read_excel(calfile, sheet_name=sheet_after, **rdxl_kw)
-#     data_before = pd.read_excel(calfile, sheet_name=sheet_before, **rdxl_kw)
-#
-#     # Add times to data arrays
-#     data_after.loc[:, 'time'] = date_after
-#     data_before.loc[:, 'time'] = date_before
-#
-#     return pd.concat((data_before, data_after))
 
-
-def read_calfile(device_serial, sheet=None, variable='temperature', probe=False):
+def read_calfile(device_serial, sheet=None, variable='temperature'):
     """
     Read the device calibration data given its serial number
 
@@ -344,6 +233,9 @@ def read_calfile(device_serial, sheet=None, variable='temperature', probe=False)
     sheet : None or int
         determines what deployment year to consider as the calibration points. If
         `None`, the latest year is considered. If `int`, the specified year is considered.
+    variable : str
+        name of the variable for which to get the calibration data: one of [`temperature`,
+        `salinity`, `conductivity`, `depth`].
 
     Returns
     -------

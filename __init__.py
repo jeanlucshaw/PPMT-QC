@@ -5,10 +5,12 @@ import os
 
 # Parameters
 TIME_ORIGIN = pd.Timestamp('2000-01-01T00:00:00')
-TEMP_DRIFT_THRES = 0.01        # (degrees Celsius)
-COND_DRIFT_THRES = 0.009       # (Siemens / meter)
-PSAL_DRIFT_THRES = 0.05        # (Practical salinity units)
-DEPT_DRIFT_THRES = 1.0         # (meters)
+THRESHOLDS = {
+    'temperature' : 0.01,       # (degrees Celsius)
+    'salinity': 0.05,           # (Practical salinity units)
+    'conductivity': 0.009,      # (Siemens / meter)
+    'depth': 1.0                # (meters)
+}
 
 # File path management
 TOP = r'S:\Soutien technique DAISS\PPMT'
