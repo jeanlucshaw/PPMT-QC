@@ -86,7 +86,7 @@ def manage_file_type(data, metadata):
         else:
             data.loc[:, 'pressure'] = np.nan
 
-    # Conductivity (mS / cm)
+    # Conductivity (mS / cm): FIX ME !!! conductivity is always S / m at this stage
     if not includes['conductivity']:
         if includes['salinity'] and includes['pressure']:
             data.loc[:, 'conductivity'] = gsw.C_from_SP(data['salinity'], data['temperature'], data['pressure'])
@@ -96,7 +96,7 @@ def manage_file_type(data, metadata):
         else:
             data.loc[:, 'conductivity'] = np.nan
 
-    # Salinity (assumes conductivity units of [mS / cm])
+    # Salinity (assumes conductivity units of [mS / cm]) : FIX ME !!! conductivity is always S / m at this stage
     if not includes['salinity'] and includes['pressure']:
         if includes['conductivity']:
             data.loc[:, 'salinity'] = gsw.SP_from_C(data['conductivity'], data['temperature'], data['pressure'])
@@ -149,7 +149,9 @@ def manage_file_type(data, metadata):
     standard_header['data_source'] = data_source
 
     # Calibration status
-    mli_calibration = {year: probe_calfile(standard_header['device_serial'], year),
+    mli_calibration = {'single_year': probe_calfile_single_year(standard_header['device_serial']),
+                       year + 1: probe_calfile(standard_header['device_serial'], year + 1),
+                       year: probe_calfile(standard_header['device_serial'], year),
                        year - 1: probe_calfile(standard_header['device_serial'], year - 1),
                        year - 2: probe_calfile(standard_header['device_serial'], year - 2)}
     standard_header['mli_calibration'] = mli_calibration

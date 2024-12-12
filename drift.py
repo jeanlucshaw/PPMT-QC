@@ -60,6 +60,7 @@ def get_calibration_data(header):
                                       variable=calibrations['pre'][0],
                                       sheet=calibrations['pre'][1])
 
+
                 # Post deployment calibration
                 df_post = read_calfile(header['device_serial'],
                                        variable=calibrations['post'][0],
@@ -67,6 +68,15 @@ def get_calibration_data(header):
 
                 # Stack the pre and post data into a single dataframe and save
                 calibration_data[variable] = pd.concat((df_pre, df_post))
+            else:
+                message = f"""
+                No valid calibration case for
+                variable: {variable},
+                deployment year:  {header["deployment_year"]}, 
+                device_serial: {header["device_serial"]}
+                """
+                print(message)
+                # raise FileNotFoundError(message)
 
     return calibration_data
 
@@ -96,7 +106,7 @@ def get_calibration_data_setup(variable, header):
     # Temperature and depth are together because they have simpler logic
     # ------------------------------------------------------------------
     if variable in ['temperature', 'depth']:
-        # Post deployment calibration exists
+        # Post deployment calibration exists (on deployment year)
         if header['mli_calibration'][year][f'{variable}_calibration']:
             """ post deployment exist """
             # Pre deployment calibration exists (one year back)
@@ -105,11 +115,30 @@ def get_calibration_data_setup(variable, header):
             # Pre deployment calibration exists (two years back)
             elif header['mli_calibration'][year - 2][f'{variable}_calibration']:
                 calibrations = {'ok': True, 'pre': (variable, year - 2), 'post': (variable, year)}
+            # Post deployment is on a new device (single calibration)
+            elif header['mli_calibration']['single_year']:
+                calibrations = {'ok': True, 'pre': (variable, 'blank'), 'post': (variable, year)}
             # Pre deployment calibration does not exists
             else:
                 calibrations = {'ok': False, 'pre': (variable, None), 'post': (variable, None)}
 
-        # Post deployment calibration exists
+        # Post deployment calibration exists (the year after deployment year)
+        elif header['mli_calibration'][year + 1][f'{variable}_calibration']:
+            """ post deployment exist """
+            # Pre deployment calibration exists (one year back)
+            if header['mli_calibration'][year - 1][f'{variable}_calibration']:
+                calibrations = {'ok': True, 'pre': (variable, year - 1), 'post': (variable, year + 1)}
+            # Pre deployment calibration exists (two years back)
+            elif header['mli_calibration'][year - 2][f'{variable}_calibration']:
+                calibrations = {'ok': True, 'pre': (variable, year - 2), 'post': (variable, year + 1)}
+            # Post deployment is on a new device (single calibration)
+            elif header['mli_calibration']['single_year']:
+                calibrations = {'ok': True, 'pre': (variable, 'blank'), 'post': (variable, year + 1)}
+            # Pre deployment calibration does not exists
+            else:
+                calibrations = {'ok': False, 'pre': (variable, None), 'post': (variable, None)}
+
+        # Post deployment calibration does not exist
         else:
             calibrations = {'ok': False, 'pre': (variable, None), 'post': (variable, None)}
 
@@ -135,7 +164,7 @@ def get_calibration_data_setup(variable, header):
             else:
                 calibrations = {'ok': False, 'pre': (variable, None), 'post': (variable, None)}
 
-        # Post deployment calibration exists
+        # Post deployment calibration does not exist
         else:
             calibrations = {'ok': False, 'pre': (variable, None), 'post': (variable, None)}
 

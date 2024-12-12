@@ -49,6 +49,7 @@ if LOCAL:
 
     # Make a list of the calibration files
     CALFILES = [*glob(r'S:\Etalon\Équipement Océanographique\Seabird\SBE-37\*\*\*.xls'),
+                *glob(r'S:\Etalon\Équipement Océanographique\Seabird\SBE-37\*\*\*\*.xls'),
                 *glob(r'S:\Etalon\Équipement Océanographique\Seabird\SBE-56\*\*.xls')]
 
     # Make local copies of the files for when working on this project remotely
@@ -67,7 +68,7 @@ else:
 
 def extract_serial(filename):
     """ get serial number from Calibration file name """
-    return re.findall('[ _]([0-9]+)[ _]', filename)[0]
+    return int(re.findall('[ _]([0-9]+)[ _]', filename)[0])
 
 
 # Make a lookup table linking calibration files and device serial numbers

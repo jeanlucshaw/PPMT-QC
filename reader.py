@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 import re
 from __init__ import CALFILES_LOOKUP
 from seabird_names import seabird_name_to_unit
@@ -124,6 +125,40 @@ def julian2timestamp(julian, year):
 # -------
 
 
+def probe_calfile_single_year(device_serial):
+    """
+    Check a calibration file for single calibration year case
+
+    Parameters
+    ----------
+    device_serial : str or int
+        serial number of the device (excluding 056 or 057)
+
+    Returns
+    -------
+    single_year : bool
+        true if single year of calibrations available
+
+    """
+    # Ensure device serial is an integer
+    device_serial = int(device_serial)
+
+    # Find the right calibration file
+    if device_serial in CALFILES_LOOKUP.serial.values:
+        calfile, = CALFILES_LOOKUP.query(f'serial == {device_serial}')['fullpath']
+    else:
+        raise FileNotFoundError(f'No calibration file for serial #: {device_serial}')
+
+    # Get the sheet names for this serial number's calibration file
+    sheet_names = pd.ExcelFile(calfile).sheet_names
+    if len(sheet_names) == 1:
+        single_year = True
+    else:
+        single_year = False
+
+    return single_year
+
+
 def probe_calfile(device_serial, deployment_year):
     """
     Check a calibration file for dates of calibration and calibration data
@@ -145,6 +180,9 @@ def probe_calfile(device_serial, deployment_year):
         """ helper to check strings for convertibility to Timestamp """
         return pd.notnull(pd.to_datetime(string, errors='coerce'))
 
+    # Ensure device serial is an integer
+    device_serial = int(device_serial)
+
     # Init output
     calfile_params = {'temperature_calibration': False,
                       'conductivity_raw_calibration': False,
@@ -155,75 +193,90 @@ def probe_calfile(device_serial, deployment_year):
                       'temperature_calibration_date': False,
                       'conductivity_raw_calibration_date': False,
                       'conductivity_clean_calibration_date': False,
-                      'depth_calibration_date': False}
+                      'depth_calibration_date': False,
+                      'calibration_exists': False}
 
     # Find the right calibration file
-    calfile, = CALFILES_LOOKUP.query(f'serial == "{device_serial}"')['fullpath']
+    if device_serial in CALFILES_LOOKUP.serial.values:
+        calfile, = CALFILES_LOOKUP.query(f'serial == {device_serial}')['fullpath']
+    else:
+        raise FileNotFoundError(f'No calibration file for serial #: {device_serial}')
 
-    # Find the number of rows
-    nrows = pd.read_excel(calfile, sheet_name=f'{deployment_year}').shape[0]
+    # Get the sheet names for this serial number's calibration file
+    sheet_names = pd.ExcelFile(calfile).sheet_names
 
-    # ----------------------------------------
-    # Check if calibration dates are available
-    # ----------------------------------------
+    if str(deployment_year) in sheet_names:
 
-    if nrows > 4:
-        t_date_str = pd.read_excel(calfile, sheet_name=f"{deployment_year}").iloc[1, 4]
-        calfile_params['temperature_calibration_date'] = is_date_str(t_date_str)
-    if nrows >= 20:
-        c_raw_date_str = pd.read_excel(calfile, sheet_name=f"{deployment_year}").iloc[20, 4]
-        calfile_params['conductivity_raw_calibration_date'] = is_date_str(c_raw_date_str)
-    if nrows >= 31:
-        c_clean_date_str = pd.read_excel(calfile, sheet_name=f"{deployment_year}").iloc[31, 4]
-        calfile_params['conductivity_clean_calibration_date'] = is_date_str(c_clean_date_str)
-    if nrows >= 49:
-        d_date_str = pd.read_excel(calfile, sheet_name=f"{deployment_year}").iloc[49, 4]
-        calfile_params['depth_calibration_date'] = is_date_str(d_date_str)
+        # Simplifies logic and readability later in the pipe
+        calfile_params['calibration_exists'] = True
 
-    # --------------------------------------
-    # Check if calibration data is available
-    # --------------------------------------
+        # Find the number of rows
+        nrows = pd.read_excel(calfile, sheet_name=f'{deployment_year}').shape[0]
 
-    if nrows > 10:
-        calfile_params['temperature_calibration'] = (pd
-                                           .read_excel(calfile, sheet_name=f"{deployment_year}")
-                                           .iloc[slice(5, 10), 3]
-                                           .notna()
-                                           .all())
-    if nrows > 29:
-        calfile_params['conductivity_raw_calibration'] = (pd
+        # ----------------------------------------
+        # Check if calibration dates are available
+        # ----------------------------------------
+
+        if nrows > 4:
+            t_date_str = pd.read_excel(calfile, sheet_name=f"{deployment_year}").iloc[1, 4]
+            calfile_params['temperature_calibration_date'] = is_date_str(t_date_str)
+        if nrows >= 20:
+            c_raw_date_str = pd.read_excel(calfile, sheet_name=f"{deployment_year}").iloc[20, 4]
+            calfile_params['conductivity_raw_calibration_date'] = is_date_str(c_raw_date_str)
+        if nrows >= 31:
+            c_clean_date_str = pd.read_excel(calfile, sheet_name=f"{deployment_year}").iloc[31, 4]
+            calfile_params['conductivity_clean_calibration_date'] = is_date_str(c_clean_date_str)
+        if nrows >= 49:
+            d_date_str = pd.read_excel(calfile, sheet_name=f"{deployment_year}").iloc[49, 4]
+            calfile_params['depth_calibration_date'] = is_date_str(d_date_str)
+
+        # --------------------------------------
+        # Check if calibration data is available
+        # --------------------------------------
+
+        if nrows > 10:
+            calfile_params['temperature_calibration'] = (pd
                                                .read_excel(calfile, sheet_name=f"{deployment_year}")
-                                               .iloc[slice(26, 30), 2]
+                                               .iloc[slice(5, 10), 3]
                                                .notna()
                                                .all())
-        calfile_params['salinity_raw_calibration'] = (pd
+        if nrows > 29:
+            calfile_params['conductivity_raw_calibration'] = (pd
+                                                   .read_excel(calfile, sheet_name=f"{deployment_year}")
+                                                   .iloc[slice(26, 30), 2]
+                                                   .notna()
+                                                   .all())
+            calfile_params['salinity_raw_calibration'] = (pd
+                                                   .read_excel(calfile, sheet_name=f"{deployment_year}")
+                                                   .iloc[slice(26, 30), 6]
+                                                   .notna()
+                                                   .all())
+        if nrows > 40:
+            calfile_params['conductivity_clean_calibration'] = (pd
+                                                     .read_excel(calfile, sheet_name=f"{deployment_year}")
+                                                     .iloc[slice(35, 39), 2]
+                                                     .notna()
+                                                     .all())
+            calfile_params['salinity_clean_calibration'] = (pd
+                                                     .read_excel(calfile, sheet_name=f"{deployment_year}")
+                                                     .iloc[slice(35, 39), 6]
+                                                     .notna()
+                                                     .all())
+        if nrows > 64:
+            """ only checking 0-500 PSI, 600 and 700 are often null """
+            calfile_params['depth_calibration'] = (pd
                                                .read_excel(calfile, sheet_name=f"{deployment_year}")
-                                               .iloc[slice(26, 30), 6]
+                                               .iloc[slice(55, 62), 6]
                                                .notna()
                                                .all())
-    if nrows > 40:
-        calfile_params['conductivity_clean_calibration'] = (pd
-                                                 .read_excel(calfile, sheet_name=f"{deployment_year}")
-                                                 .iloc[slice(35, 39), 2]
-                                                 .notna()
-                                                 .all())
-        calfile_params['salinity_clean_calibration'] = (pd
-                                                 .read_excel(calfile, sheet_name=f"{deployment_year}")
-                                                 .iloc[slice(35, 39), 6]
-                                                 .notna()
-                                                 .all())
-    if nrows > 64:
-        """ only checking 0-500 PSI, 600 and 700 are often null """
-        calfile_params['depth_calibration'] = (pd
-                                           .read_excel(calfile, sheet_name=f"{deployment_year}")
-                                           .iloc[slice(55, 62), 6]
-                                           .notna()
-                                           .all())
+    else:
+        # Simplifies logic and readability later in the pipe
+        calfile_params['calibration_exists'] = False
 
     return calfile_params
 
 
-def read_calfile(device_serial, sheet=None, variable='temperature'):
+def read_calfile(device_serial, sheet, variable='temperature'):
     """
     Read the device calibration data given its serial number
 
@@ -231,9 +284,10 @@ def read_calfile(device_serial, sheet=None, variable='temperature'):
     ----------
     device_serial : int
         serial number of the device (excluding 056 or 057)
-    sheet : None or int
+    sheet : int or 'blank'
         determines what deployment year to consider as the calibration points. If
-        `None`, the latest year is considered. If `int`, the specified year is considered.
+        `blank`, return zero with no dates (perfect calibration). If `int`, the specified
+        year is considered.
     variable : str
         name of the variable for which to get the calibration data: one of [`temperature`,
         `salinity`, `conductivity`, `depth`].
@@ -244,6 +298,13 @@ def read_calfile(device_serial, sheet=None, variable='temperature'):
         containing the dates, standard values, and deviations.
 
     """
+    # Ensure device serial is an integer
+    device_serial = int(device_serial)
+
+    # Ensure calibration file exists
+    if device_serial not in CALFILES_LOOKUP.serial.values:
+        raise FileNotFoundError(f'No calibration file for serial #: {device_serial}')
+
     # Manage which temperature calibration to get
     if variable == 'temperature':
         date_cell = (1, 4)
@@ -309,24 +370,29 @@ def read_calfile(device_serial, sheet=None, variable='temperature'):
         raise ValueError(f'read_calfile arg `variable` must be in {allowed_values}')
 
     # Find the right calibration file
-    calfile, = CALFILES_LOOKUP.query(f'serial == "{device_serial}"')['fullpath']
+    calfile, = CALFILES_LOOKUP.query(f'serial == {device_serial}')['fullpath']
 
     # Get the sheet names for this serial number
     sheet_names = pd.ExcelFile(calfile).sheet_names
 
-    if sheet == None:
-        sheet = sheet_names[0]
-    elif isinstance(sheet, (int, float)):
-        sheet = str(sheet)
+    # Manage sheet input
+    if sheet == 'blank':
+        array = np.zeros((rdxl_kw['nrows'], len(rdxl_kw['names'])))
+        data = pd.DataFrame(columns=rdxl_kw['names'], data=array)
+        data.loc[:, 'time'] = 'deployment'
+    else:
+        # Ensure the requested deployment year calibration exists
+        if str(sheet) not in sheet_names:
+            raise ValueError(f'No calibration for deployment year: {sheet}, device_serial: {device_serial}')
 
-    # Get calibration date
-    date = pd.Timestamp(pd.read_excel(calfile, sheet_name=sheet).iloc[date_cell])
+        # Get calibration date
+        date = pd.Timestamp(pd.read_excel(calfile, sheet_name=str(sheet)).iloc[date_cell])
 
-    # Read the spreadsheets
-    data = pd.read_excel(calfile, sheet_name=sheet, **rdxl_kw)
+        # Read the spreadsheets
+        data = pd.read_excel(calfile, sheet_name=str(sheet), **rdxl_kw)
 
-    # Add times to data arrays
-    data.loc[:, 'time'] = date
+        # Add times to data arrays
+        data.loc[:, 'time'] = date
 
     return data
 
