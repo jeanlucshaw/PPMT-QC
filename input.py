@@ -82,7 +82,9 @@ def manage_file_type(data, metadata):
             data.loc[:, 'pressure'] = gsw.p_from_z(-1 * data['depth'], 48)
             includes['pressure'] = True
             data_source['pressure'] = 'teos10'
-            data_source['depth'] = 'observation'
+
+            if data_source['depth'] is None:
+                data_source['depth'] = 'observation'     # don't overwrite `metadata` as source
         else:
             data.loc[:, 'pressure'] = np.nan
 

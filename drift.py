@@ -101,38 +101,40 @@ def get_calibration_data_setup(variable, header):
     """
     # For readability
     year = header['deployment_year']
+    mli_cal = header['mli_calibration']
 
     # ------------------------------------------------------------------
     # Temperature and depth are together because they have simpler logic
     # ------------------------------------------------------------------
+
     if variable in ['temperature', 'depth']:
         # Post deployment calibration exists (on deployment year)
-        if header['mli_calibration'][year][f'{variable}_calibration']:
+        if mli_cal[year][f'{variable}_calibration']:
             """ post deployment exist """
             # Pre deployment calibration exists (one year back)
-            if header['mli_calibration'][year - 1][f'{variable}_calibration']:
+            if mli_cal[year - 1][f'{variable}_calibration']:
                 calibrations = {'ok': True, 'pre': (variable, year - 1), 'post': (variable, year)}
             # Pre deployment calibration exists (two years back)
-            elif header['mli_calibration'][year - 2][f'{variable}_calibration']:
+            elif mli_cal[year - 2][f'{variable}_calibration']:
                 calibrations = {'ok': True, 'pre': (variable, year - 2), 'post': (variable, year)}
             # Post deployment is on a new device (single calibration)
-            elif header['mli_calibration']['single_year']:
+            elif mli_cal['single_year']:
                 calibrations = {'ok': True, 'pre': (variable, 'blank'), 'post': (variable, year)}
             # Pre deployment calibration does not exists
             else:
                 calibrations = {'ok': False, 'pre': (variable, None), 'post': (variable, None)}
 
         # Post deployment calibration exists (the year after deployment year)
-        elif header['mli_calibration'][year + 1][f'{variable}_calibration']:
+        elif mli_cal[year + 1][f'{variable}_calibration']:
             """ post deployment exist """
             # Pre deployment calibration exists (one year back)
-            if header['mli_calibration'][year - 1][f'{variable}_calibration']:
+            if mli_cal[year - 1][f'{variable}_calibration']:
                 calibrations = {'ok': True, 'pre': (variable, year - 1), 'post': (variable, year + 1)}
             # Pre deployment calibration exists (two years back)
-            elif header['mli_calibration'][year - 2][f'{variable}_calibration']:
+            elif mli_cal[year - 2][f'{variable}_calibration']:
                 calibrations = {'ok': True, 'pre': (variable, year - 2), 'post': (variable, year + 1)}
             # Post deployment is on a new device (single calibration)
-            elif header['mli_calibration']['single_year']:
+            elif mli_cal['single_year']:
                 calibrations = {'ok': True, 'pre': (variable, 'blank'), 'post': (variable, year + 1)}
             # Pre deployment calibration does not exists
             else:
@@ -145,21 +147,46 @@ def get_calibration_data_setup(variable, header):
     # --------------------------------------------------------------------------------
     # Salinity and conductivity are separate because of the clean/raw added complexity
     # --------------------------------------------------------------------------------
+
     elif variable in ['salinity', 'conductivity']:
-        # Post deployment calibration exists
-        if header['mli_calibration'][year][f'{variable}_raw_calibration']:
+        # Post deployment calibration exists (on deployment year)
+        if mli_cal[year][f'{variable}_raw_calibration']:
             # Pre deployment calibration exists (one year back; clean)
-            if header['mli_calibration'][year - 1][f'{variable}_clean_calibration']:
+            if mli_cal[year - 1][f'{variable}_clean_calibration']:
                 calibrations = {'ok': True, 'pre': (f'{variable}_clean', year - 1), 'post': (f'{variable}_raw', year)}
             # Pre deployment calibration exists (one year back; raw)
-            elif header['mli_calibration'][year - 1][f'{variable}_raw_calibration']:
+            elif mli_cal[year - 1][f'{variable}_raw_calibration']:
                 calibrations = {'ok': True, 'pre': (f'{variable}_raw', year - 1), 'post': (f'{variable}_raw', year)}
             # Pre deployment calibration exists (two years back; clean)
-            elif header['mli_calibration'][year - 2][f'{variable}_clean_calibration']:
+            elif mli_cal[year - 2][f'{variable}_clean_calibration']:
                 calibrations = {'ok': True, 'pre': (f'{variable}_clean', year - 2), 'post': (f'{variable}_raw', year)}
             # Pre deployment calibration exists (two years back; raw)
-            elif header['mli_calibration'][year - 2][f'{variable}_raw_calibration']:
+            elif mli_cal[year - 2][f'{variable}_raw_calibration']:
                 calibrations = {'ok': True, 'pre': (f'{variable}_raw', year - 2), 'post': (f'{variable}_raw', year)}
+            # Post deployment is on a new device (single calibration)
+            elif mli_cal['single_year']:
+                calibrations = {'ok': True, 'pre': (variable, 'blank'), 'post': (variable, year)}
+            # Pre deployment calibration does not exists
+            else:
+                calibrations = {'ok': False, 'pre': (variable, None), 'post': (variable, None)}
+
+        # Post deployment calibration exists (the year after deployment year)
+        elif mli_cal[year + 1][f'{variable}_raw_calibration']:
+            # Pre deployment calibration exists (one year back; clean)
+            if mli_cal[year - 1][f'{variable}_clean_calibration']:
+                calibrations = {'ok': True, 'pre': (f'{variable}_clean', year - 1), 'post': (f'{variable}_raw', year + 1)}
+            # Pre deployment calibration exists (one year back; raw)
+            elif mli_cal[year - 1][f'{variable}_raw_calibration']:
+                calibrations = {'ok': True, 'pre': (f'{variable}_raw', year - 1), 'post': (f'{variable}_raw', year + 1)}
+            # Pre deployment calibration exists (two years back; clean)
+            elif mli_cal[year - 2][f'{variable}_clean_calibration']:
+                calibrations = {'ok': True, 'pre': (f'{variable}_clean', year - 2), 'post': (f'{variable}_raw', year + 1)}
+            # Pre deployment calibration exists (two years back; raw)
+            elif mli_cal[year - 2][f'{variable}_raw_calibration']:
+                calibrations = {'ok': True, 'pre': (f'{variable}_raw', year - 2), 'post': (f'{variable}_raw', year + 1)}
+            # Post deployment is on a new device (single calibration)
+            elif mli_cal['single_year']:
+                calibrations = {'ok': True, 'pre': (variable, 'blank'), 'post': (variable, year + 1)}
             # Pre deployment calibration does not exists
             else:
                 calibrations = {'ok': False, 'pre': (variable, None), 'post': (variable, None)}
