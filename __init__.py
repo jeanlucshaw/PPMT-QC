@@ -68,7 +68,7 @@ else:
 
 def extract_serial(filename):
     """ get serial number from Calibration file name """
-    return int(re.findall('[ _]([0-9]+)[ _]', filename)[0])
+    return str(re.findall('[ _]([0-9]+)[ _]', filename)[0])  # must be a string: some serials start with zero
 
 
 # Make a lookup table linking calibration files and device serial numbers

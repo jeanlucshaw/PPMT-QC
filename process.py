@@ -11,9 +11,13 @@ from output import init_output
 from reader import *
 from drift import *
 
+filename = r'C:\Users\SHAWJE\Desktop\home\PPMT\local\unprocessed\SBE05606943_2024-11-19_SHEDIAC.csv'
+# filename = r'C:\Users\SHAWJE\Desktop\home\PPMT\local\unprocessed\Q22SHEZ2.csv'
 
-filename = UNPROCESSED[15] # Serial must be a string because the first digit can be zero
-cf = r'C:\\Users\\SHAWJE\\Desktop\\home\\PPMT\\local\\calfiles\\Vérification sbe37SMP_ODO_15609_jan_2021.xls'
+
+
+# filename = UNPROCESSED[13] # Serial must be a string because the first digit can be zero
+# cf = r'C:\\Users\\SHAWJE\\Desktop\\home\\PPMT\\local\\calfiles\\Vérification sbe37SMP_ODO_15609_jan_2021.xls'
 
 # -------------------------------
 # Read data file and its metadata
@@ -43,6 +47,7 @@ calibration_data = get_calibration_data(header)
 
 # Drift correction
 data, header = manage_drift_correction(data, header, calibration_data)
+
 
 
 # ------------------------------

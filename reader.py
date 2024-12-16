@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import re
+import os
 from __init__ import CALFILES_LOOKUP
 from seabird_names import seabird_name_to_unit
 
@@ -12,42 +13,67 @@ from seabird_names import seabird_name_to_unit
 Suivi Excel file columns (translated and simplified) column 0 -- 6 rows
 are doubled up (merged) -> reading from 7 to the last is simplest.
 """
-suivi_columns = ['station',
-                 'buoy_name',
-                 'SIPA_number',
-                 'buoy_type',
-                 'trip_id_installation',
-                 'trip_id_recovery',
-                 'trip_installation_nominal_date',
-                 'site_long_name',
-                 'site_latitude',
-                 'site_longitude',
-                 'instrument_depth',
-                 'site_depth',
-                 'site_unique_id',
-                 'instrument_unique_id',
-                 'platform_type',
-                 'sbe56_id',
-                 'sbe37_id',
-                 'vr2w_id',
-                 'programmed',
-                 'delivered',
-                 'trip_installation_real_date',
-                 'recovered',
-                 'trip_recovery_real_date',
-                 'trip_recovery_nominal_date', # some rows doubled up
-                 'data_extracted',
-                 'comment',
-                 'physical_storage_location',
-                 'varargin1',
-                 'varargin2',
-                 'varargin3',
-                 'varargin4',
-                 'varargin5']
+suivi_columns = {'station': str,
+                 'buoy_name': str,
+                 'SIPA_number': float,
+                 'buoy_type': str,
+                 'trip_id_installation': str,
+                 'trip_id_recovery': str,
+                 'trip_installation_nominal_date': str,
+                 'site_long_name': str,
+                 'site_latitude': str,
+                 'site_longitude': str,
+                 'instrument_depth': float,
+                 'site_depth': float,
+                 'site_unique_id': str,
+                 'instrument_unique_id': str,
+                 'platform_type': str,
+                 'sbe56_id': str,
+                 'sbe37_id': str,
+                 'vr2w_id': str,
+                 'programmed': str,
+                 'delivered': str,
+                 'trip_installation_real_date': str,
+                 'recovered': str,
+                 'trip_recovery_real_date': str,
+                 'trip_recovery_nominal_date': str, # some rows doubled up
+                 'data_extracted': str,
+                 'comment': str,
+                 'physical_storage_location': str,
+                 'varargin1': str,
+                 'varargin2': str,
+                 'varargin3': str,
+                 'varargin4': str,
+                 'varargin5': str}
+
 
 # -------
 # Helpers
 # -------
+
+
+def assert_serial(device_serial):
+    """
+    Ensure a calibration file exists for this serial number
+
+    Parameters
+    ----------
+    device_serial : str
+        associated with this device
+
+    Returns
+    -------
+    asserted_serial : str
+        the known serial or closely matching serial with a calibration file
+
+    """
+    if device_serial in CALFILES_LOOKUP.serial.values:
+        asserted = device_serial
+    elif device_serial.startswith('0') and device_serial[1:] in CALFILES_LOOKUP.serial.values:
+        asserted = device_serial[1:]
+    else:
+        raise ValueError(f'No calibration file found for device serial: {device_serial}')
+    return asserted
 
 
 def flag_no_yes_lost(value):
@@ -63,6 +89,45 @@ def flag_no_yes_lost(value):
         flag = 0
 
     return flag
+
+
+def get_calibration_file_path(device_serial):
+    """
+    Get the most recent available calibration file and path for this device
+
+    Parameters
+    ----------
+    device_serial : str
+        associated with this SBE37 or SBE56 device
+
+    Returns
+    -------
+    calfile : str
+        the path and name to the selected calibration file (.xls)
+
+    """
+    # Ensure the device serial is provided as a string
+    device_serial = str(device_serial)
+
+    # Ensure the device serial is known
+    device_serial = assert_serial(device_serial)
+
+    # Normal case should return a list of size 1
+    calfile = CALFILES_LOOKUP.query(f'serial == "{device_serial}"')['fullpath'].values
+
+    # Some cases would return a length one list
+    if len(calfile) == 1:
+        calfile = calfile[0]
+
+    # Sometimes many calibration files exist (use the youngest)
+    elif len(calfile) > 1:
+        calfile = sorted(calfile, key=lambda x: os.path.getmtime(x), reverse=True)[0]
+
+    # No matching calibration
+    else:
+        raise ValueError(f'No calibration file found for device serial: {device_serial}')
+
+    return calfile
 
 
 def get_device_suivi_metadata(serial, year):
@@ -83,14 +148,20 @@ def get_device_suivi_metadata(serial, year):
 
     """
     # Separate instrument type and device number
-    inst_type, inst_num = int(serial[:3]), int(serial[3:])
+    inst_type, inst_num = int(serial[:3]), str(serial[3:])
+
+    # Ensure the serial is related to a known device
+    inst_num = assert_serial(inst_num)
 
     # Read the appropriate "suivi" spreadsheet give the deployment year
     suivi = read_suivi(year)
 
     # Select the line corresponding to this device
     id_col = f'sbe{inst_type}_id'
-    line = suivi.query(f'{id_col} == {inst_num}')
+    if inst_num in suivi.loc[:, id_col].values:
+        line = suivi.query(f'{id_col} == "{inst_num}"')
+    else:
+        raise ValueError(f'No `suivi` metadata row for device: SBE{inst_type} {inst_num}')
 
     # Format as a dictionary with values unpacked
     metadata = line.to_dict(orient='list')
@@ -131,7 +202,7 @@ def probe_calfile_single_year(device_serial):
 
     Parameters
     ----------
-    device_serial : str or int
+    device_serial : str
         serial number of the device (excluding 056 or 057)
 
     Returns
@@ -141,13 +212,13 @@ def probe_calfile_single_year(device_serial):
 
     """
     # Ensure device serial is an integer
-    device_serial = int(device_serial)
+    device_serial = str(device_serial)
+
+    # Ensure the serial is known
+    device_serial = assert_serial(device_serial)
 
     # Find the right calibration file
-    if device_serial in CALFILES_LOOKUP.serial.values:
-        calfile, = CALFILES_LOOKUP.query(f'serial == {device_serial}')['fullpath']
-    else:
-        raise FileNotFoundError(f'No calibration file for serial #: {device_serial}')
+    calfile = get_calibration_file_path(device_serial)
 
     # Get the sheet names for this serial number's calibration file
     sheet_names = pd.ExcelFile(calfile).sheet_names
@@ -165,7 +236,7 @@ def probe_calfile(device_serial, deployment_year):
 
     Parameters
     ----------
-    device_serial : str or int
+    device_serial : str
         serial number of the device (excluding 056 or 057)
     deployment_year : int
         year the device started recording.
@@ -180,8 +251,8 @@ def probe_calfile(device_serial, deployment_year):
         """ helper to check strings for convertibility to Timestamp """
         return pd.notnull(pd.to_datetime(string, errors='coerce'))
 
-    # Ensure device serial is an integer
-    device_serial = int(device_serial)
+    # Ensure device serial is a string
+    device_serial = str(device_serial)
 
     # Init output
     calfile_params = {'temperature_calibration': False,
@@ -198,7 +269,8 @@ def probe_calfile(device_serial, deployment_year):
 
     # Find the right calibration file
     if device_serial in CALFILES_LOOKUP.serial.values:
-        calfile, = CALFILES_LOOKUP.query(f'serial == {device_serial}')['fullpath']
+        # calfile, = CALFILES_LOOKUP.query(f'serial == {device_serial}')['fullpath']
+        calfile = get_calibration_file_path(device_serial)
     else:
         raise FileNotFoundError(f'No calibration file for serial #: {device_serial}')
 
@@ -282,7 +354,7 @@ def read_calfile(device_serial, sheet, variable='temperature'):
 
     Parameters
     ----------
-    device_serial : int
+    device_serial : str
         serial number of the device (excluding 056 or 057)
     sheet : int or 'blank'
         determines what deployment year to consider as the calibration points. If
@@ -298,8 +370,8 @@ def read_calfile(device_serial, sheet, variable='temperature'):
         containing the dates, standard values, and deviations.
 
     """
-    # Ensure device serial is an integer
-    device_serial = int(device_serial)
+    # Ensure device serial is a string
+    device_serial = str(device_serial)
 
     # Ensure calibration file exists
     if device_serial not in CALFILES_LOOKUP.serial.values:
@@ -370,7 +442,8 @@ def read_calfile(device_serial, sheet, variable='temperature'):
         raise ValueError(f'read_calfile arg `variable` must be in {allowed_values}')
 
     # Find the right calibration file
-    calfile, = CALFILES_LOOKUP.query(f'serial == {device_serial}')['fullpath']
+    # calfile, = CALFILES_LOOKUP.query(f'serial == {device_serial}')['fullpath']
+    calfile = get_calibration_file_path(device_serial)
 
     # Get the sheet names for this serial number
     sheet_names = pd.ExcelFile(calfile).sheet_names
@@ -622,7 +695,8 @@ def read_suivi(year):
     filepath = 'local\suivi\ppmt%d.xlsx' % year
     suivi = pd.read_excel(filepath,
                           sheet_name=sheet,
-                          names=suivi_columns[7:],
+                          names=suivi_columns.keys(),
+                          dtype=suivi_columns,
                           index_col=None,
                           usecols=range(7, len(suivi_columns)),
                           skiprows=2)

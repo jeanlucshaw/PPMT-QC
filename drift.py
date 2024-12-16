@@ -1,4 +1,4 @@
-from __init__ import TIME_ORIGIN, THRESHOLDS
+from __init__ import TIME_ORIGIN, THRESHOLDS, CALFILES_LOOKUP
 from scipy.interpolate import LinearNDInterpolator as LNDI
 from reader import read_calfile
 import pandas as pd
