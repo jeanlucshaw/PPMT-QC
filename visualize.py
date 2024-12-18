@@ -178,11 +178,11 @@ def plot_processed(data,
     # Calculate the rolling mean and std, and compare data to the generated envelope
     r_mean, r_std, outside = rolling_filter(data, variable)
     outside_time, outside_index = [], []
-    for index, time in enumerate(data.time[outside]):
+    for index, time in zip(data.index[outside], data.time[outside]):
         outside_time.append(time)
         outside_index.append(index)
         if print_flags:
-            print(f"Value outside rolling STD envelope: index = {index}")
+            print(f"Value outside rolling STD envelope: {variable} at index {index}")
 
     if draw_plot:
         # init plot

@@ -2,6 +2,65 @@ import xarray as xr
 import numpy as np
 
 
+def apply_flags(dataset, flag_data):
+    """
+    Apply the specified flags to `dataset`
+
+    Parameters
+    ----------
+    dataset : xarray.Dataset
+        output of `output.init_output`
+    flag_data : dict
+        containing the flagging instructions
+
+    Returns
+    -------
+    dataset : xarray.Dataset
+        with the modified flag variables
+
+    Note
+    ----
+        The `flag_data` variable should be structured as follows:
+
+            flag_data = {flag_value: {'variable', [index_1, index_2, ...]}}
+
+        with a key for each flag value, for example
+
+            flag_data = {2: {'all': [30000],
+                        'temperature': [157, 312, 405]},
+                        4: {'salinity': [10000]}}
+
+        The variable `all` can be used to target `temperature`, `conductivity`, `salinity` and `depth`.
+
+    """
+    # Flag variables to target for each variable
+    flag_names = {'temperature': 'QQQQ_01',
+                  'conductivity': 'QQQQ_02',
+                  'salinity': 'QQQQ_03',
+                  'depth': 'QQQQ_04'}
+
+    # Loop over flag values
+    for flag in flag_data.keys():
+
+        # Loop over entries for this flag value
+        for variable, index in flag_data[flag].items():
+
+            # Apply flag to all variables
+            if variable == 'all':
+                for v_ in flag_names.keys():
+                    dataset[flag_names[v_]].values[index] = flag
+
+            # Apply flag to this specific variable
+            elif variable in flag_names.keys():
+                dataset[flag_names[variable]].values[index] = flag
+
+            # Raise if there is a problem with the requested variable name
+            else:
+                raise ValueError(f'Variable not recognized in `flag_data`: {variable}')
+
+    return dataset
+
+
 def init_output(data, standard_header):
     """
     Place data from the cnv, csv and xlsx files into a pre-filled structure
