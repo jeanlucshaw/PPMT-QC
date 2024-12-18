@@ -266,6 +266,14 @@ def manage_drift_correction(data, header, calibration_data):
         # This variable has calibration data
         if variable in calibration_data.keys():
 
+            # Interpolate the calibration data -> deviation(time, variable)
+            deviation = interpolate_deviation(calibration_data[variable],
+                                              data,
+                                              variable)
+
+            # Apply drift correction
+            data[f'{variable}_deviation'] = deviation
+
             # Determine if drift correction must be applied
             if (calibration_data[variable]['deviation'].abs() > THRESHOLDS[f'{variable}']).any():
 
@@ -273,11 +281,13 @@ def manage_drift_correction(data, header, calibration_data):
                 header['drift_correction'][variable] = True
 
                 # Interpolate the calibration data -> deviation(time, variable)
-                deviation = interpolate_deviation(calibration_data[variable],
-                                                  data,
-                                                  variable)
+                # deviation = interpolate_deviation(calibration_data[variable],
+                #                                   data,
+                #                                   variable)
 
                 # Apply drift correction
+                data[f'{variable}_raw'] = data[f'{variable}'].copy()
+                # data[f'{variable}_deviation'] = deviation
                 data[f'{variable}'] += deviation
 
             else:
