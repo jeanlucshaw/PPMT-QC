@@ -1,5 +1,7 @@
 import xarray as xr
 import numpy as np
+import json
+from datetime import datetime
 
 
 def apply_flags(dataset, flag_data):
@@ -63,7 +65,7 @@ def apply_flags(dataset, flag_data):
 
 def init_output(data, standard_header):
     """
-    Place data from the cnv, csv and xlsx files into a pre-filled structure
+    Place data from the cnv, csv and xlsx files into a pre-filled xarray structure
 
     Parameters
     ----------
@@ -83,32 +85,42 @@ def init_output(data, standard_header):
     template_attributes = {'Deployment_Year': standard_header['deployment_year'],
                            'Station_abbr': standard_header['site_unique_id'],
                            'Station': standard_header['site_long_name'],
-                           'Event_Header': {'Start_Date_Time': '',
-                                            'End_Date_Time': '',
-                                            'RAWFile_Name': '',
-                                            'Creation_Date': '',
-                                            'Num_Cycle': '',
-                                            'Num_Param': ''},
+                           'Event_Header': json.dumps({'Start_Date_Time': standard_header['trip_installation_real_date'],
+                                                       'End_Date_Time': standard_header['trip_recovery_real_date'],
+                                                       'RAWFile_Name': standard_header['raw_file_name'],
+                                                       'Creation_Date': str(datetime.now())[:16],
+                                                       'Num_Cycle': data.temperature.size,
+                                                       'Num_Param': ''}),
                            'Latitude': standard_header['site_latitude'],
                            'Longitude': standard_header['site_longitude'],
                            'INSTR_DEPTH': standard_header['instrument_depth'],
                            'SITE_DEPTH': standard_header['site_depth'],
                            'SBE': standard_header['SBE'],
-                           'Instrument_Header': {'Serial_Number': standard_header['device_serial'],
-                                                 'Sampling_Interval': standard_header['interval'],
-                                                 'Inst_Type': standard_header['instrument_type'],
-                                                 'Model': standard_header['instrument_model']},
-                           'General_Cal_Header': {'Units': '',
-                                                  'T_C_Calibration_Date': '',
-                                                  'Temperature': '',
-                                                  'Conductivity': ''}}
+                           'Instrument_Header': json.dumps({'Serial_Number': standard_header['device_serial'],
+                                                            'Sampling_Interval': standard_header['interval'],
+                                                            'Inst_Type': standard_header['instrument_type'],
+                                                            'Model': standard_header['instrument_model']}),
+                           'General_Cal_Header': json.dumps({'Units': '',
+                                                             'T_C_Calibration_Date': standard_header['calibration_header']['CalDate'],
+                                                             'Temperature': {'A0': standard_header['calibration_header']['TCAL_A0'],
+                                                                             'A1': standard_header['calibration_header']['TCAL_A1'],
+                                                                             'A2': standard_header['calibration_header']['TCAL_A2'],
+                                                                             'A3': standard_header['calibration_header']['TCAL_A3']},
+                                                             'Conductivity': {'G': standard_header['calibration_header']['CCAL_G'],
+                                                                              'H': standard_header['calibration_header']['CCAL_H'],
+                                                                              'I': standard_header['calibration_header']['CCAL_I'],
+                                                                              'J': standard_header['calibration_header']['CCAL_J'],
+                                                                              'PCOR': standard_header['calibration_header']['CCAL_PCOR'],
+                                                                              'TCOR': standard_header['calibration_header']['CCAL_TCOR'],
+                                                                              'WBOTC': standard_header['calibration_header']['CCAL_WBOTC'],
+                                                                              }})}
     template_variables = {'TE90_01': ('Time',
                                       data.temperature,
                                       dict(long_name='Temperature',
                                            standard_name='sea_water_temperature',
                                            units='degrees Celsius')),
                           'QQQQ_01': ('Time',
-                                      np.zeros(data.temperature.size, dtype=int),
+                                      np.zeros(data.temperature.size, dtype='int64'),
                                       dict(long_name='Temperature quality flags',
                                            flag_values=flag_values,
                                            flag_meanings=flag_meanings)),
@@ -116,9 +128,9 @@ def init_output(data, standard_header):
                                       data.conductivity,
                                       dict(long_name='Conductivity',
                                            standard_name='sea_water_conductivity',
-                                           units='')),
+                                           units='S / m')),
                           'QQQQ_02': ('Time',
-                                      np.zeros(data.conductivity.size, dtype=int),
+                                      np.zeros(data.conductivity.size, dtype='int64'),
                                       dict(long_name='Conductivity quality flags',
                                            flag_values=flag_values,
                                            flag_meanings=flag_meanings)),
@@ -128,7 +140,7 @@ def init_output(data, standard_header):
                                            standard_name='sea_water_practical_salinity',
                                            units='practical salinity units')),
                           'QQQQ_03': ('Time',
-                                      np.zeros(data.salinity.size, dtype=int),
+                                      np.zeros(data.salinity.size, dtype='int64'),
                                       dict(long_name='Salinity quality flags',
                                            flag_values=flag_values,
                                            flag_meanings=flag_meanings)),
@@ -139,7 +151,7 @@ def init_output(data, standard_header):
                                     positive='down',
                                     units='m')),
                           'QQQQ_04': ('Time',
-                                      np.zeros(data.depth.size, dtype=int),
+                                      np.zeros(data.depth.size, dtype='int64'),
                                       dict(long_name='Depth/pressure quality flags',
                                            flag_values=flag_values,
                                            flag_meanings=flag_meanings)),
@@ -154,4 +166,13 @@ def init_output(data, standard_header):
                          coords={'Time': data.time},
                          attrs=template_attributes)
 
+    # Date and hour variables
+    Date, Heure = [], []
+    for index, date_string in enumerate(np.datetime_as_string(dataset.Time.values, unit='s')):
+        d_, h_ = date_string.split('T')
+        Date.append(d_)
+        Heure.append(h_)
+    dataset = dataset.assign_coords({'Date': ('Time', Date), 'Heure': ('Time', Heure)})
+
     return dataset
+

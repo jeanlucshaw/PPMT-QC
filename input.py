@@ -145,10 +145,14 @@ def manage_file_type(data, metadata):
             version = 'V.1'
         standard_header['instrument_model'] = f'SBE37 {version}'
 
+    # Event header
+    standard_header['raw_file_name'] = metadata['raw_file_name']
+
     # Global attributes
     standard_header['deployment_year'] = year
     standard_header['SBE'] = int(serial[:3])
     standard_header['data_source'] = data_source
+    standard_header['calibration_header'] = metadata['CalHeader']
 
     # Calibration status
     mli_calibration = {'single_year': probe_calfile_single_year(standard_header['device_serial']),

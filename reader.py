@@ -490,14 +490,28 @@ def read_cnv_metadata(filename, short_names=True):
     LINES = open(filename, 'r', errors='replace').readlines()
 
     # Parameters
-    metadata = dict(names=[],
+    metadata = dict(raw_file_name=filename,
+                    names=[],
                     seabird_names=[],
                     units=[],
                     date=None,
                     lon=None,
                     lat=None,
                     missing_values=None,
-                    header_lines=0)
+                    header_lines=0,
+                    CalHeader=dict(CalDate='',
+                                   TCAL_A0='',
+                                   TCAL_A1='',
+                                   TCAL_A2='',
+                                   TCAL_A3='',
+                                   CCAL_G='',
+                                   CCAL_H='',
+                                   CCAL_I='',
+                                   CCAL_J='',
+                                   CCAL_PCOR='',
+                                   CCAL_TCOR='',
+                                   CCAL_WBOTC='')
+                    )
 
     # Parse header
     for LN, L in enumerate(LINES):
@@ -522,6 +536,37 @@ def read_cnv_metadata(filename, short_names=True):
             minute = float(L.split()[-2])
             direction = L.split()[-1]
             metadata['lat'] = dmd2dd(degree, minute, direction)
+            
+        # For calibration Headerer
+        if re.search('^\*\s+<CalDate>.*</CalDate>', L):
+            metadata['CalHeader']['CalDate'] = str(re.findall('<CalDate>(.*)</CalDate>', L)[0])
+            
+        # Temperature calibration coefficients
+        if re.search('^\*\s+<A0>.*</A0>', L):
+            metadata['CalHeader']['TCAL_A0'] = float(re.findall('<A0>(.*)</A0>', L)[0])
+        if re.search('^\*\s+<A1>.*</A1>', L):
+            metadata['CalHeader']['TCAL_A1'] = float(re.findall('<A1>(.*)</A1>', L)[0])
+        if re.search('^\*\s+<A2>.*</A2>', L):
+            metadata['CalHeader']['TCAL_A2'] = float(re.findall('<A2>(.*)</A2>', L)[0])
+        if re.search('^\*\s+<A3>.*</A3>', L):
+            metadata['CalHeader']['TCAL_A3'] = float(re.findall('<A3>(.*)</A3>', L)[0])
+
+        # Conductivity calibration coefficients
+        if re.search('^\*\s+<G>.*</G>', L):
+            metadata['CalHeader']['CCAL_G'] = float(re.findall('<G>(.*)</G>', L)[0])
+        if re.search('^\*\s+<H>.*</H>', L):
+            metadata['CalHeader']['CCAL_H'] = float(re.findall('<H>(.*)</H>', L)[0])
+        if re.search('^\*\s+<I>.*</I>', L):
+            metadata['CalHeader']['CCAL_I'] = float(re.findall('<I>(.*)</I>', L)[0])
+        if re.search('^\*\s+<J>.*</J>', L):
+            metadata['CalHeader']['CCAL_J'] = float(re.findall('<J>(.*)</J>', L)[0])
+        if re.search('^\*\s+<PCOR>.*</PCOR>', L):
+            metadata['CalHeader']['CCAL_PCOR'] = float(re.findall('<PCOR>(.*)</PCOR>', L)[0])
+        if re.search('^\*\s+<TCOR>.*</TCOR>', L):
+            metadata['CalHeader']['CCAL_TCOR'] = float(re.findall('<TCOR>(.*)</TCOR>', L)[0])
+        if re.search('^\*\s+<WBOTC>.*</WBOTC>', L):
+            metadata['CalHeader']['CCAL_WBOTC'] = float(re.findall('<WBOTC>(.*)</WBOTC>', L)[0])
+
         if re.search('# bad_flag', L):
             metadata['missing_values'] = L.split()[-1]
         if re.search('# interval', L):
@@ -662,6 +707,9 @@ def read_csv(filename):
             if not line.startswith('%'):
                 break
             headerlines += 1
+
+    # Add file name to header data
+    header['raw_file_name'] = filename
 
     # Read file data
     data = pd.read_csv(filename,
