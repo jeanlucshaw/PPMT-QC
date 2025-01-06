@@ -1,4 +1,4 @@
-# PPMT-QC
+# Module ppmt
 Software to streamline processing of the DFO thermograph network data in the Gulf of 
 St. Lawrence (Québec region).
 
