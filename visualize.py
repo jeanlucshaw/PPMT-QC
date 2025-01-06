@@ -97,7 +97,40 @@ def get_variable_climatology(variable='temperature'):
     return df
 
 
-def rolling_filter(data, variable, threshold=3):
+def is_user_flagged(index, variable, flag_data):
+    """
+    Check if this index has been flagged by the user (in the customized processing script).
+
+    Parameters
+    ----------
+    index : int
+        the array position to check
+    variable : str
+        for which variable should the flags be checked
+    flag_data : dict
+        the user-specified flags
+
+    Returns
+    -------
+    flagged : bool
+        True if the index has been flagged by the user
+
+    """
+    flagged = False
+    if isinstance(flag_data, dict):
+        for flag_value in flag_data.keys():
+            if variable in flag_data[flag_value].keys():
+                flagged = index in flag_data[flag_value][variable]
+                if flagged is True:
+                    break
+            if 'all' in flag_data[flag_value].keys():
+                flagged = index in flag_data[flag_value]['all']
+                if flagged is True:
+                    break
+    return flagged
+
+
+def rolling_filter(data, variable, threshold=3, std_type='static'):
     """
     Apply a rolling mean and std filter and test that input is outside range
 
@@ -109,30 +142,69 @@ def rolling_filter(data, variable, threshold=3):
         the name of the variable to process
     threshold : float or int
         define the test range in multiples of local standard deviation around mean
+    std_type : str
+        one of [`static`, `rolling`]. use the std for the whole time series or the std
+        from the same moving window as used for the mean.
 
     Returns
     -------
     rolling_mean : pandas.Series
         result of the rolling mean applied to the `variable` time series
-    rolling_std : pandas.Series
-        result of the rolling std applied to the `variable` time series
+    std : pandas.Series
+        result of the rolling or static std applied to the `variable` time series
     outside : pandas.Series
         boolean time series; true if outside range
 
     """
     # Define filter parameters
-    filter_params = dict(window=11, center=True, min_periods=11)
+    filter_params = dict(window='10D', center=True)
 
     # Get filtered output
-    rolling_mean = data[variable].rolling(**filter_params).mean()
-    rolling_std = data[variable].rolling(**filter_params).std()
+    rolling_mean = data.set_index('time')[variable].rolling(**filter_params).mean().values
+    if std_type == 'rolling':
+        std = data.set_index('time')[variable].rolling(**filter_params).std().values
+    elif std_type == 'static':
+        std = data[variable].std()
+    else:
+        raise ValueError('Argument `std_type` must be one of [`static`, `rolling`]')
 
     # Test the input against the requested envelope
-    above_envelope = data[variable] > (rolling_mean + threshold * rolling_std)
-    below_envelope = data[variable] < (rolling_mean - threshold * rolling_std)
-    outside = above_envelope | below_envelope
+    above_envelope = data[variable] > (rolling_mean + threshold * std)
+    below_envelope = data[variable] < (rolling_mean - threshold * std)
 
-    return rolling_mean, rolling_std, outside
+    outside = (above_envelope | below_envelope)
+
+    return rolling_mean, std, outside
+
+
+def unique_variable_flag_indices(variable, flag_data):
+    """
+    Get the index values flagged by the user for this variable or all variables
+
+    Parameters
+    ----------
+    variable : str
+        name of the variable for which to get flags
+    flag_data : dict
+        the user specified flags
+
+    Returns
+    -------
+    unique_flags : dict
+        flag values as keys and lists of indices as values
+
+    """
+    unique_variable_flags = dict()
+    for flag in flag_data.keys():
+        indices = set()
+        if 'all' in flag_data[flag].keys():
+            indices = {*indices, *flag_data[flag]['all']}
+        if variable in flag_data[flag].keys():
+            indices = {*indices, *flag_data[flag][variable]}
+        unique_variable_flags[flag] = list(indices)
+
+    return unique_variable_flags
+
 
 # -----
 # Plots
@@ -143,6 +215,7 @@ def plot_processed(data,
                    header,
                    variable,
                    print_flags=True,
+                   user_flags=None,
                    draw_plot=True,
                    save_plot=False):
     """
@@ -158,6 +231,8 @@ def plot_processed(data,
         the variable to visualize; one of [`temperature`, `salinity`]
     print_flags : bool
         display index of data values outside the rolling STD envelope
+    user_flags : None or dict
+        plot the user specified flags (overrides) the STD envelope flags.
     draw_plot : bool
         make the analysis plot
     save_plot : bool
@@ -173,31 +248,46 @@ def plot_processed(data,
 
     # Get the climatology information for this station and variable
     station_clim = get_station_climatology(variable, header)
-    clim_min, clim_max, data_min, data_max = get_timeseries_climatology(station_clim, data.time)
+    if station_clim.shape[0] > 0:
+        clim_min, clim_max, data_min, data_max = get_timeseries_climatology(station_clim, data.time)
+        clim_available = True
+    else:
+        print(f'Climatology unavailable for serial: {header["device_serial"]}, variable: {variable}')
+        clim_available = False
 
     # Calculate the rolling mean and std, and compare data to the generated envelope
     r_mean, r_std, outside = rolling_filter(data, variable)
     outside_time, outside_index = [], []
     for index, time in zip(data.index[outside], data.time[outside]):
-        outside_time.append(time)
-        outside_index.append(index)
-        if print_flags:
-            print(f"Value outside rolling STD envelope: {variable} at index {index}")
+        if not is_user_flagged(index, variable, user_flags):
+            outside_time.append(time)
+            outside_index.append(index)
+            if print_flags:
+                print(f"Value outside rolling STD envelope: {variable} at index {index}")
 
     if draw_plot:
         # init plot
         gskw = dict(left=0.1, right=0.95, bottom=0.1, top=0.9)
         _, ax = plt.subplots(2, figsize=(10, 5), sharex=True, gridspec_kw=gskw)
 
+        # (Panel 1): user specified flags
+        if isinstance(user_flags, dict):
+            flag_colors = ['c', 'g', 'yellow', 'orange', 'r', 'm', 'w', 'w', 'w', 'gray']
+            unique_flags = unique_variable_flag_indices(variable, user_flags)
+            for flag, index in unique_flags.items():
+                for i_ in index:
+                    ax[0].axvline(data.time[i_], color=flag_colors[flag])
+
         # (Panel 1): climatology envelope + daily average min and max
-        ax[0].fill_between(data.time, clim_min, clim_max, color='lightgrey', step='mid')
-        ax[0].plot(data.time, data_max, 'r')
-        ax[0].plot(data.time, data_min, 'b')
+        if clim_available:
+            ax[0].fill_between(data.time, clim_min, clim_max, color='lightgrey', step='mid', zorder=2)
+            ax[0].plot(data.time, data_max, 'r', zorder=3)
+            ax[0].plot(data.time, data_min, 'b', zorder=3)
 
         # (Panel 1): time series in black, rolling mean in green, and rolling std envelope in blue
-        ax[0].plot(data.time, r_mean, 'g', lw=1)
-        data.plot(x='time', y=f'{variable}', c='k', lw=0.5, ax=ax[0], legend=False)
-        ax[0].fill_between(data.time, r_mean + 3*r_std, r_mean - 3*r_std, color='lightskyblue')
+        ax[0].plot(data.time, r_mean, 'g', lw=1, zorder=4)
+        data.plot(x='time', y=f'{variable}', c='k', lw=0.5, ax=ax[0], legend=False, zorder=5)
+        ax[0].fill_between(data.time, r_mean + 3*r_std, r_mean - 3*r_std, color='lightskyblue', zorder=1, alpha=0.5)
 
         # (Panel 1): mark data points outside the rolling std envelope with orange vertical lines
         for time in outside_time:

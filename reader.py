@@ -9,6 +9,19 @@ from seabird_names import seabird_name_to_unit
 # Parameters
 # ----------
 
+calibration_header_template = dict(CalDate='',
+                                   TCAL_A0='',
+                                   TCAL_A1='',
+                                   TCAL_A2='',
+                                   TCAL_A3='',
+                                   CCAL_G='',
+                                   CCAL_H='',
+                                   CCAL_I='',
+                                   CCAL_J='',
+                                   CCAL_PCOR='',
+                                   CCAL_TCOR='',
+                                   CCAL_WBOTC='')
+
 """
 Suivi Excel file columns (translated and simplified) column 0 -- 6 rows
 are doubled up (merged) -> reading from 7 to the last is simplest.
@@ -161,7 +174,7 @@ def get_device_suivi_metadata(serial, year):
     if inst_num in suivi.loc[:, id_col].values:
         line = suivi.query(f'{id_col} == "{inst_num}"')
     else:
-        raise ValueError(f'No `suivi` metadata row for device: SBE{inst_type} {inst_num}')
+        raise ValueError(f'No `suivi` metadata row for device: SBE{inst_type} {inst_num} during {year}')
 
     # Format as a dictionary with values unpacked
     metadata = line.to_dict(orient='list')
@@ -499,18 +512,19 @@ def read_cnv_metadata(filename, short_names=True):
                     lat=None,
                     missing_values=None,
                     header_lines=0,
-                    CalHeader=dict(CalDate='',
-                                   TCAL_A0='',
-                                   TCAL_A1='',
-                                   TCAL_A2='',
-                                   TCAL_A3='',
-                                   CCAL_G='',
-                                   CCAL_H='',
-                                   CCAL_I='',
-                                   CCAL_J='',
-                                   CCAL_PCOR='',
-                                   CCAL_TCOR='',
-                                   CCAL_WBOTC='')
+                    CalHeader=calibration_header_template
+                    # CalHeader=dict(CalDate='',
+                    #                TCAL_A0='',
+                    #                TCAL_A1='',
+                    #                TCAL_A2='',
+                    #                TCAL_A3='',
+                    #                CCAL_G='',
+                    #                CCAL_H='',
+                    #                CCAL_I='',
+                    #                CCAL_J='',
+                    #                CCAL_PCOR='',
+                    #                CCAL_TCOR='',
+                    #                CCAL_WBOTC='')
                     )
 
     # Parse header
@@ -607,11 +621,12 @@ def read_cnv_metadata(filename, short_names=True):
 
 
 def read_cnv(FNAME,
-                sep=r'\s+',
-                usecols=None,
-                metadata_cols=True,
-                short_names=True,
-                **kw_read_csv):
+             sep=r'\s+',
+             usecols=None,
+             metadata_cols=True,
+             short_names=True,
+             data=True,
+             **kw_read_csv):
     """
     Read seabird(like) files into a pandas dataframe.
 
@@ -628,6 +643,8 @@ def read_cnv(FNAME,
         Add columns with date, lon, lat repeated from header.
     short_names: bool
         Give output columns shorter names.
+    data : bool
+        read all data, or only the first row if False.
 
     Returns
     -------
@@ -647,12 +664,17 @@ def read_cnv(FNAME,
         usecols = [i_ for i_, _ in enumerate(md['names'])]
 
     # Read the data
+    if data is True:
+        nrows = None  # read everything
+    else:
+        nrows = 5
     DF = pd.read_csv(FNAME,
                      skiprows=md['header_lines'],
                      sep=sep,
                      usecols=usecols,
                      names=md['names'],
                      na_values=md['missing_values'],
+                     nrows=nrows,
                      **kw_read_csv)
 
     # Detect and manage Julian days
@@ -683,11 +705,13 @@ def read_cnv(FNAME,
 
 
 # SBE56 data files
-def read_csv(filename):
+def read_csv(filename, data=True):
     """
     Read the csv (often SBE56) files
     :param filename: str
         path and name to the PPMT data file.
+    :param data: bool
+        read data, otherwise only metadata
     :return: header, data
     """
     # Initialize
@@ -710,10 +734,25 @@ def read_csv(filename):
 
     # Add file name to header data
     header['raw_file_name'] = filename
+    
+    # Add calibration coefficients
+    header['CalHeader'] = calibration_header_template
+    if 'A0' in header.keys():
+        header['CalHeader']['TCAL_A0'] = float(header['A0'].replace(',', '.'))
+    if 'A1' in header.keys():
+        header['CalHeader']['TCAL_A1'] = float(header['A1'].replace(',', '.'))
+    if 'A2' in header.keys():
+        header['CalHeader']['TCAL_A2'] = float(header['A2'].replace(',', '.'))
+    if 'A3' in header.keys():
+        header['CalHeader']['TCAL_A3'] = float(header['A3'].replace(',', '.'))
+    if 'TCOR' in header.keys() or 'PCOR' in header.keys():
+        raise NotImplementedError('CSV files sometimes contain salinity: implement keeping their calibration coefs.')
 
     # Read file data
-    data = pd.read_csv(filename,
-                       skiprows=headerlines)
+    if data is True:
+        data = pd.read_csv(filename, skiprows=headerlines)
+    else:
+        data = pd.read_csv(filename, skiprows=headerlines, nrows=5)
 
     # Lowercase column names
     data = data.rename(columns={k: k.lower() for k in data.keys()})
@@ -747,7 +786,7 @@ def read_suivi(year):
                           dtype=suivi_columns,
                           index_col=None,
                           usecols=range(7, len(suivi_columns)),
-                          skiprows=2)
+                          skiprows=1)
 
     # Remove lines with no values (separators)
     suivi = suivi.query('~site_long_name.isnull()')

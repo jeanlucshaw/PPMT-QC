@@ -1,6 +1,8 @@
 import gsw
 import re
 import numpy as np
+import pandas as pd
+
 from __init__ import UNITS
 from reader import *
 from pint import UnitRegistry

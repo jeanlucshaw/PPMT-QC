@@ -2,6 +2,7 @@ from __init__ import TIME_ORIGIN, THRESHOLDS, CALFILES_LOOKUP
 from scipy.interpolate import LinearNDInterpolator as LNDI
 from reader import read_calfile
 import pandas as pd
+import numpy as np
 
 # -------
 # Helpers
@@ -17,9 +18,10 @@ def timestamp2numeric(timestamp):
     """ timestamp to decimal days since Jan 1, 2000 """
     if isinstance(timestamp, pd.Timestamp):
         numeric = (timestamp - TIME_ORIGIN).total_seconds() / 24 / 3600
-    elif isinstance(timestamp, pd.Series):
-        timestamp = pd.Series(timestamp)
-        numeric = (timestamp - TIME_ORIGIN).apply(lambda x: x.total_seconds() / 24 / 3600)
+    elif isinstance(timestamp, (pd.Series, np.ndarray)):
+        ts = pd.to_datetime(timestamp)         # This seems like overkill but it solves some nasty bugs
+        origin = pd.to_datetime(TIME_ORIGIN)
+        numeric = (ts - origin).apply(lambda x: x.total_seconds() / 24 / 3600)
     else:
         raise TypeError('timestamp2numeric requires input be type: [pd.Timestamp, pd.Series]')
     return numeric
@@ -60,6 +62,9 @@ def get_calibration_data(header):
                                       variable=calibrations['pre'][0],
                                       sheet=calibrations['pre'][1])
 
+                # Assume factory calibration was perfect on deployment date (new device)
+                if 'deployment' in df_pre.time.unique():
+                    df_pre.loc[:, 'time'] = np.datetime64(header['trip_installation_real_date'], '[us]')
 
                 # Post deployment calibration
                 df_post = read_calfile(header['device_serial'],
@@ -68,6 +73,7 @@ def get_calibration_data(header):
 
                 # Stack the pre and post data into a single dataframe and save
                 calibration_data[variable] = pd.concat((df_pre, df_post))
+
             else:
                 message = f"""
                 No valid calibration case for
