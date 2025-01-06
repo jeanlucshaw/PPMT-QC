@@ -2,8 +2,8 @@ import pandas as pd
 import numpy as np
 import re
 import os
-from __init__ import CALFILES_LOOKUP
-from seabird_names import seabird_name_to_unit
+from ppmt.__init__ import CALFILES_LOOKUP, INSTALL_DIR
+from ppmt.seabird_names import seabird_name_to_unit
 
 # ----------
 # Parameters
@@ -779,7 +779,7 @@ def read_suivi(year):
 
     # Read the file
     #filepath = '%s\Liste suivi thermographe\ppmt%d.xlsx' % (TOP, year)
-    filepath = 'local\suivi\ppmt%d.xlsx' % year
+    filepath = os.path.join(INSTALL_DIR, 'local', 'suivi', 'ppmt%d.xlsx' % year)
     suivi = pd.read_excel(filepath,
                           sheet_name=sheet,
                           names=suivi_columns.keys(),

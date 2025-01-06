@@ -32,9 +32,11 @@ UNITS = {
 # File path management
 # --------------------
 
-TOP = r'S:\Soutien technique DAISS\PPMT'
-UNPROCESSED_PPMT_DIR = r'%s\Donnees\non traite' % TOP
-UNPROCESSED_MOORING_DIR = r'%s\Donnees\Mouillage\non traite' % TOP
+TOP = os.path.join('S:', u'Soutien technique DAISS', 'PPMT')
+UNPROCESSED_PPMT_DIR = os.path.join(TOP, 'Donnees', u'non traite')
+UNPROCESSED_MOORING_DIR = os.path.join(TOP, 'Donnees', 'Mouillage', u'non traite')
+SEABIRD_DIR = os.path.join('S:', 'Etalon', u'\311quipement Oc\351anographique', 'Seabird')
+INSTALL_DIR = os.path.dirname(__file__)
 
 # Working on LAN (local; fast) or through VPN (remote; slow)
 LOCAL = False
@@ -42,28 +44,31 @@ LOCAL = False
 if LOCAL:
 
     # Make a list of the unprocessed PPMT files
-    UNPROCESSED = [*glob(r'%s\*.csv' % UNPROCESSED_PPMT_DIR),
-                   *glob(r'%s\*.cnv' % UNPROCESSED_PPMT_DIR),
-                   *glob(r'%s\*.csv' % UNPROCESSED_MOORING_DIR),
-                   *glob(r'%s\*.cnv' % UNPROCESSED_MOORING_DIR)]
+    UNPROCESSED = [*glob(os.path.join(UNPROCESSED_PPMT_DIR, '*.csv')),
+                   *glob(os.path.join(UNPROCESSED_PPMT_DIR, '*.cnv')),
+                   *glob(os.path.join(UNPROCESSED_MOORING_DIR, '*.csv')),
+                   *glob(os.path.join(UNPROCESSED_MOORING_DIR, '*.cnv'))]
 
     # Make a list of the calibration files
-    CALFILES = [*glob(r'S:\Etalon\Équipement Océanographique\Seabird\SBE-37\*\*\*.xls'),
-                *glob(r'S:\Etalon\Équipement Océanographique\Seabird\SBE-37\*\*\*\*.xls'),
-                *glob(r'S:\Etalon\Équipement Océanographique\Seabird\SBE-56\*\*.xls')]
+    CALFILES = [*glob(os.path.join(SEABIRD_DIR, 'SBE-56', '*', '*.xls')),
+                *glob(os.path.join(SEABIRD_DIR, 'SBE-37', 'V1', '*', '*.xls')),
+                *glob(os.path.join(SEABIRD_DIR, 'SBE-37', 'V1', '*', '*', '*.xls')),
+                *glob(os.path.join(SEABIRD_DIR, 'SBE-37', 'V2', '*', '*.xls')),
+                *glob(os.path.join(SEABIRD_DIR, 'SBE-37', 'V2', '*', '*', '*.xls'))]
 
     # Make local copies of the files for when working on this project remotely
     for F in UNPROCESSED:
-        os.system(f'copy "{F}" {os.getcwd()}\\local\\unprocessed\\')
+        os.system(f'copy "{F}" "{os.path.join(INSTALL_DIR, "local", "unprocessed")}"')
+
     for F in CALFILES:
-        os.system(f'copy "{F}" {os.getcwd()}\\local\\calfiles\\')
+        os.system(f'copy "{F}" "{os.path.join(INSTALL_DIR, "local", "calfiles")}"')
 
 else:
 
     # Read local copies
-    UNPROCESSED = [*glob(f'{os.getcwd()}\\local\\unprocessed\\*.csv'),
-                   *glob(f'{os.getcwd()}\\local\\unprocessed\\*.cnv')]
-    CALFILES = glob(f'{os.getcwd()}\\local\\calfiles\\*.xls')
+    UNPROCESSED = [*glob(f'{os.path.join(INSTALL_DIR, "local", "unprocessed", "*.csv")}'),
+                   *glob(f'{os.path.join(INSTALL_DIR, "local", "unprocessed", "*.cnv")}')]
+    CALFILES = glob(f'{os.path.join(INSTALL_DIR, "local", "calfiles", "*.xls")}')
 
 
 def extract_serial(filename):

@@ -1,8 +1,10 @@
 import pandas as pd
 import re
+import os
+from ppmt.__init__ import INSTALL_DIR
 
 # Read name/unit database
-seabird_names = pd.read_csv('data/seabird_names.csv')
+seabird_names = pd.read_csv(os.path.join(INSTALL_DIR, 'data', 'seabird_names.csv'))
 
 
 def seabird_name_to_unit(seabird_name):

@@ -2,13 +2,13 @@ import os.path
 import pathlib
 import matplotlib
 matplotlib.use('TkAgg')
-from __init__ import UNPROCESSED
-from input import *
-from visualize import plot_processed
-from output import init_output, apply_flags
+from ppmt.__init__ import UNPROCESSED
+from ppmt.input import *
+from ppmt.visualize import plot_processed
+from ppmt.output import init_output, apply_flags
 from glob import glob
-from reader import *
-from drift import *
+from ppmt.reader import *
+from ppmt.drift import *
 
 
 # ----------------
@@ -151,7 +151,7 @@ def generate_processing_script(input_file,
     py_file_name = f'{file_name}.py'
 
     with open(os.path.join(py_file_path, py_file_name), 'w') as pyfile:
-        pyfile.write("from process import process_ppmt\n\n")
+        pyfile.write("from ppmt.process import process_ppmt\n\n")
         pyfile.write('# Switch this to `True` when the processing is completed and the files managed\n')
         pyfile.write("finalized = False\n\n")
         pyfile.write('# The file which this script processes\n')

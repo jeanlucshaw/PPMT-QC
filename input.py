@@ -2,9 +2,8 @@ import gsw
 import re
 import numpy as np
 import pandas as pd
-
-from __init__ import UNITS
-from reader import *
+from ppmt.__init__ import UNITS
+from ppmt.reader import *
 from pint import UnitRegistry
 ureg = UnitRegistry()
 ureg.define('practical_salinity_unit = [] = psu')

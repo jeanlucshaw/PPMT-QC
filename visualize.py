@@ -1,4 +1,4 @@
-from __init__ import THRESHOLDS
+from ppmt.__init__ import THRESHOLDS, INSTALL_DIR
 import pandas as pd
 import matplotlib.transforms as transforms
 import matplotlib.pyplot as plt
@@ -88,7 +88,7 @@ def get_variable_climatology(variable='temperature'):
              f'SD{variable[0].upper()}max',
              f'Nmax',
              'station_id']
-    df = pd.read_csv(f'{os.getcwd()}\\data\\{variable[0].upper()}.dailyClim.dat',
+    df = pd.read_csv(os.path.join(INSTALL_DIR, 'data', f'{variable[0].upper()}.dailyClim.dat'),
                      skiprows=1,
                      names=names,
                      na_values=[-99],
@@ -280,14 +280,14 @@ def plot_processed(data,
 
         # (Panel 1): climatology envelope + daily average min and max
         if clim_available:
-            ax[0].fill_between(data.time, clim_min, clim_max, color='lightgrey', step='mid', zorder=2)
+            ax[0].fill_between(data.time, clim_min, clim_max, color='lightskyblue', step='mid', zorder=2)
             ax[0].plot(data.time, data_max, 'r', zorder=3)
             ax[0].plot(data.time, data_min, 'b', zorder=3)
 
         # (Panel 1): time series in black, rolling mean in green, and rolling std envelope in blue
         ax[0].plot(data.time, r_mean, 'g', lw=1, zorder=4)
         data.plot(x='time', y=f'{variable}', c='k', lw=0.5, ax=ax[0], legend=False, zorder=5)
-        ax[0].fill_between(data.time, r_mean + 3*r_std, r_mean - 3*r_std, color='lightskyblue', zorder=1, alpha=0.5)
+        ax[0].fill_between(data.time, r_mean + 3*r_std, r_mean - 3*r_std, color='lightgrey', zorder=1, alpha=0.5)
 
         # (Panel 1): mark data points outside the rolling std envelope with orange vertical lines
         for time in outside_time:
