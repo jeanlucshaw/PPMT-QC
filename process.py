@@ -5,7 +5,7 @@ matplotlib.use('TkAgg')
 from ppmt.__init__ import UNPROCESSED
 from ppmt.input import *
 from ppmt.visualize import plot_processed
-from ppmt.output import init_output, apply_flags
+from ppmt.output import init_output, apply_flags, save_dataset
 from glob import glob
 from ppmt.reader import *
 from ppmt.drift import *
@@ -119,8 +119,7 @@ def process_ppmt(file_name,
     if dry_run is True:
         print(output_path)
     else:
-        enc = {v_: {'zlib': True, 'complevel': 9} for v_ in ds.data_vars}
-        ds.to_netcdf(output_path, encoding=enc)
+        save_dataset(output_path, ds, variables='minimal')
 
     return ds
 

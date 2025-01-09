@@ -80,6 +80,14 @@ def init_output(data, standard_header):
         containing the data and metadata in the expected output format
 
     """
+    # Determine if depth is from pressure, sensor, or metadata
+    if standard_header['data_source']['depth'] == 'observation':
+        depth_data_source = 'observation'
+    elif standard_header['data_source']['pressure'] == 'observation':
+        depth_data_source = 'observation'
+    else:
+        depth_data_source = 'other'  # just needs to no be `observation` for save_dataset
+
     flag_values = '0 1 2 3 4 5 9'
     flag_meanings = 'raw good local_outlier probably_bad bad modified missing'
     template_attributes = {'Deployment_Year': standard_header['deployment_year'],
@@ -120,49 +128,63 @@ def init_output(data, standard_header):
                                       data.temperature,
                                       dict(long_name='Temperature',
                                            standard_name='sea_water_temperature',
-                                           units='degrees Celsius')),
+                                           units='degrees Celsius',
+                                           source=standard_header['data_source']['temperature'])),
                           'QQQQ_01': ('Time',
                                       np.zeros(data.temperature.size, dtype='int64'),
                                       dict(long_name='Temperature quality flags',
                                            flag_values=flag_values,
-                                           flag_meanings=flag_meanings)),
+                                           flag_meanings=flag_meanings,
+                                           source=standard_header['data_source']['temperature'])),
                           'CNDC_01': ('Time',
                                       data.conductivity,
                                       dict(long_name='Conductivity',
                                            standard_name='sea_water_conductivity',
-                                           units='S / m')),
+                                           units='S / m',
+                                           source=standard_header['data_source']['conductivity'])),
                           'QQQQ_02': ('Time',
                                       np.zeros(data.conductivity.size, dtype='int64'),
                                       dict(long_name='Conductivity quality flags',
                                            flag_values=flag_values,
-                                           flag_meanings=flag_meanings)),
+                                           flag_meanings=flag_meanings,
+                                           source=standard_header['data_source']['conductivity'])),
                           'PSAL_01': ('Time',
                                       data.salinity,
                                       dict(long_name='Salinity',
                                            standard_name='sea_water_practical_salinity',
-                                           units='practical salinity units')),
+                                           units='practical salinity units',
+                                           source=standard_header['data_source']['salinity'])),
                           'QQQQ_03': ('Time',
                                       np.zeros(data.salinity.size, dtype='int64'),
                                       dict(long_name='Salinity quality flags',
                                            flag_values=flag_values,
-                                           flag_meanings=flag_meanings)),
+                                           flag_meanings=flag_meanings,
+                                           source=standard_header['data_source']['salinity'])),
                           'depth': ('Time',
                                     data.depth,
                                     dict(long_name='Depth',
-                                    standard_name='sea_water_depth',
-                                    positive='down',
-                                    units='m')),
+                                         standard_name='sea_water_depth',
+                                         positive='down',
+                                         units='m',
+                                         source=standard_header['data_source']['depth'])),
                           'QQQQ_04': ('Time',
                                       np.zeros(data.depth.size, dtype='int64'),
                                       dict(long_name='Depth/pressure quality flags',
                                            flag_values=flag_values,
-                                           flag_meanings=flag_meanings)),
+                                           flag_meanings=flag_meanings,
+                                           source=depth_data_source)),
                           'pressure': ('Time',
                                        data.pressure,
                                        dict(long_name='Pressure',
-                                       standard_name='sea_water_pressure',
-                                       units='dbar')),
-                          'SIGMAT': ('Time', data.sigma_t)
+                                            standard_name='sea_water_pressure',
+                                            units='dbar',
+                                            source=standard_header['data_source']['pressure'])),
+                          'SIGMAT': ('Time',
+                                     data.sigma_t,
+                                     dict(long_name='Density Anomaly',
+                                          standard_name='sea_water_sigma_t',
+                                          units='kg m-3',
+                                          source=standard_header['data_source']['sigma_t']))
                           }
     dataset = xr.Dataset(template_variables,
                          coords={'Time': data.time},
@@ -178,3 +200,38 @@ def init_output(data, standard_header):
 
     return dataset
 
+
+
+def save_dataset(output_path, dataset, variables='minimal', *args, **kwargs):
+    """
+    Save the dataset with a specific encoding and keeping only the specified variables
+
+    Parameters
+    ----------
+    output_path : str
+        the path and name where to save the file
+    dataset : xarray.Dataset
+        containing the data to save
+    variables : str
+        set of variables to save: 'minimal' for observations only, 'all' for metadata, and TEOS_10 conversions.
+
+    Returns
+    -------
+    None
+    """
+    # Select variables to save
+    if variables == 'minimal':
+
+        for variable in dataset.data_vars:
+            if dataset[variable].source != 'observation':
+                dataset = dataset.drop_vars(variable)
+    elif variables == 'all':
+        pass
+    else:
+        raise ValueError(f'Unrecognized argument: {variables} must be one of [`all`, `minimal`]')
+
+    # Set compression encoding
+    enc = {variable: {'zlib': True, 'complevel': 9} for variable in dataset.data_vars}
+    dataset.to_netcdf(output_path, encoding=enc)
+
+    return None

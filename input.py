@@ -123,6 +123,7 @@ def manage_file_type(data, metadata):
         data_source['sigma_t'] = 'teos10'
     else:
         data.loc[:, 'sigma_t'] = np.nan
+        data_source['sigma_t'] = 'none'
 
     # ----------------------------------------------------------
     # Create standard header from `suivi` and data file metadata
