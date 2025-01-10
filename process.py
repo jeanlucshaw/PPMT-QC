@@ -22,6 +22,8 @@ def read_any(file_name, read_data=True):
     _, ext = os.path.splitext(file_name)
     if ext == '.csv':
         header, data = read_csv(file_name, data=read_data)
+    elif ext == '.asc':
+        header, data = read_asc(file_name, data=read_data)
     elif ext == '.cnv':
         header = read_cnv_metadata(file_name)
         data = read_cnv(file_name, data=read_data)

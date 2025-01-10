@@ -483,6 +483,136 @@ def read_calfile(device_serial, sheet, variable='temperature'):
     return data
 
 
+def read_asc(filename, data=True):
+    """
+    Read the asc (often SBE37) files
+
+    Parameters
+    ----------
+    filename: str
+        path and name to the PPMT data file.
+    data : bool
+        read data, otherwise only metadata
+    
+    Returns
+    -------
+    header : dict
+        file metadata
+    data : pandas.DataFrame
+        file column data
+    """
+
+    # initialize metadata dictionnary
+    metadata = dict(raw_file_name='',
+                    names=[],
+                    seabird_names=[],
+                    units=[],
+                    date=None,
+                    lon=None,
+                    lat=None,
+                    header_lines=0,
+                    CalHeader=calibration_header_template)
+
+    # read header content
+    with open(filename, 'r') as infile:
+        content = infile.read()
+
+        header_block = re.search(r'.*?\*END\*', content, re.DOTALL)
+        header_block_lines = header_block.group(0).strip().split('\n')
+        header_lines = len(header_block_lines) + 3
+
+        variable_block = re.search(r'\* S>.*?\* S>', content, re.DOTALL)
+        variable_block_lines = variable_block.group(0).strip().split('\n')
+
+    # salinity column switch (presence/absence)
+    salinity_column = False
+
+    # Parse header block
+    for L in header_block_lines:
+        if re.search('\* output salinity with each sample', L):
+            salinity_column = True
+        if re.search('\* FileName =', L):
+            metadata['raw_file_name'] = L.split('=')[-1].strip()
+        if re.search('\* sample interval =', L):
+            if 'seconds' not in L:
+                print('Warning: `interval` may not be in seconds.')
+            metadata['interval'] = float(L.split()[-2])
+
+    # Parse variable block
+    for L in variable_block_lines:
+        # Serial number
+        if re.search('\* SBE[0-9]+', L):
+            metadata['serial'] = L.split()[-1]
+            metadata['device'] = re.findall('SBE[0-9]+', L)[0]
+
+        # Variable columns and metadata['units']
+        if re.search('\* temperature', L):
+            metadata['names'].append('temperature')
+            metadata['units'].append('degC')  # assumed
+        if re.search('\* conductivity', L):
+            metadata['names'].append('conductivity')
+            metadata['units'].append('S/m')  # assumed
+            if salinity_column is True:
+                metadata['names'].append('salinity')
+                metadata['units'].append('psu')  # assumed
+        if re.search('\* pressure', L):
+            metadata['names'].append('pressure')
+            metadata['units'].append('dbar')  # assumed
+        if re.search('\* depth', L):
+            metadata['names'].append('depth')
+            metadata['units'].append('m')  # assumed
+        if re.search('\* rtc', L):
+            metadata['names'].append('date')
+            metadata['units'].append('')
+            metadata['names'].append('hour')
+            metadata['units'].append('')
+
+        # Temperature calibration coefficients
+        if re.search('^\*\s+TA0 =', L):
+            metadata['CalHeader']['TCAL_A0'] = float(L.split()[-1])
+        if re.search('^\*\s+TA1 =', L):
+            metadata['CalHeader']['TCAL_A1'] = float(L.split()[-1])
+        if re.search('^\*\s+TA2 =', L):
+            metadata['CalHeader']['TCAL_A2'] = float(L.split()[-1])
+        if re.search('^\*\s+TA3 =', L):
+            metadata['CalHeader']['TCAL_A3'] = float(L.split()[-1])
+
+        # Conductivity calibration coefficients
+        if re.search('^\*\s+G =', L):
+            metadata['CalHeader']['CCAL_G'] = float(L.split()[-1])
+        if re.search('^\*\s+H =', L):
+            metadata['CalHeader']['CCAL_H'] = float(L.split()[-1])
+        if re.search('^\*\s+I =', L):
+            metadata['CalHeader']['CCAL_I'] = float(L.split()[-1])
+        if re.search('^\*\s+J =', L):
+            metadata['CalHeader']['CCAL_J'] = float(L.split()[-1])
+        if re.search('^\*\s+CPCOR =', L):
+            metadata['CalHeader']['CCAL_PCOR'] = float(L.split()[-1])
+        if re.search('^\*\s+CTCOR =', L):
+            metadata['CalHeader']['CCAL_TCOR'] = float(L.split()[-1])
+        if re.search('^\*\s+WBOTC =', L):
+            metadata['CalHeader']['CCAL_WBOTC'] = float(L.split()[-1])
+
+    # read file data
+    if data is True:
+        data = pd.read_csv(filename,
+                           skiprows=header_lines,
+                           names=metadata['names'],
+                           sep=',')
+    else:
+        data = pd.read_csv(filename,
+                           skiprows=header_lines,
+                           names=metadata['names'],
+                           sep=',',
+                           nrows=5)
+
+    # merge time columns
+    if 'time' not in data.keys():
+        data['time'] = pd.to_datetime(data.date + data.hour)
+
+    return metadata, data
+
+
 def read_cnv_metadata(filename, short_names=True):
     """
     Get information from cnv file header.
