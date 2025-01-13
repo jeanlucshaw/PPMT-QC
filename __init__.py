@@ -46,8 +46,10 @@ if LOCAL:
     # Make a list of the unprocessed PPMT files
     UNPROCESSED = [*glob(os.path.join(UNPROCESSED_PPMT_DIR, '*.csv')),
                    *glob(os.path.join(UNPROCESSED_PPMT_DIR, '*.cnv')),
+                   *glob(os.path.join(UNPROCESSED_PPMT_DIR, '*.asc')),
                    *glob(os.path.join(UNPROCESSED_MOORING_DIR, '*.csv')),
-                   *glob(os.path.join(UNPROCESSED_MOORING_DIR, '*.cnv'))]
+                   *glob(os.path.join(UNPROCESSED_MOORING_DIR, '*.cnv')),
+                   *glob(os.path.join(UNPROCESSED_MOORING_DIR, '*.asc'))]
 
     # Make a list of the calibration files
     CALFILES = [*glob(os.path.join(SEABIRD_DIR, 'SBE-56', '*', '*.xls')),
@@ -67,7 +69,8 @@ else:
 
     # Read local copies
     UNPROCESSED = [*glob(f'{os.path.join(INSTALL_DIR, "local", "unprocessed", "*.csv")}'),
-                   *glob(f'{os.path.join(INSTALL_DIR, "local", "unprocessed", "*.cnv")}')]
+                   *glob(f'{os.path.join(INSTALL_DIR, "local", "unprocessed", "*.cnv")}'),
+                   *glob(f'{os.path.join(INSTALL_DIR, "local", "unprocessed", "*.asc")}')]
     CALFILES = glob(f'{os.path.join(INSTALL_DIR, "local", "calfiles", "*.xls")}')
 
 

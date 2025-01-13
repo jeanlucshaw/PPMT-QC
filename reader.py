@@ -400,6 +400,7 @@ def read_calfile(device_serial, sheet, variable='temperature'):
                        skiprows=5,
                        nrows=6,
                        usecols=[1, 2, 3, 5])
+        nominal_cal_values = np.array([-2, 0, 5, 10, 15, 20])
     elif variable == 'conductivity_raw':
         date_cell = (20, 4)
         rdxl_kw = dict(names=['standard',
@@ -409,6 +410,7 @@ def read_calfile(device_serial, sheet, variable='temperature'):
                        skiprows=26,
                        nrows=4,
                        usecols=[1, 2, 3, 4])
+        nominal_cal_values = np.array([4.91, 4.00, 2.57, 1.35])
     elif variable == 'salinity_raw':
         # date_cell = (31, 4)
         date_cell = (20, 4)
@@ -419,6 +421,7 @@ def read_calfile(device_serial, sheet, variable='temperature'):
                        skiprows=26,
                        nrows=4,
                        usecols=[4, 5, 6, 7])
+        nominal_cal_values = np.array([35, 15, 10, 5])
     elif variable == 'conductivity_clean':
         date_cell = (31, 4)
         rdxl_kw = dict(names=['standard',
@@ -428,6 +431,7 @@ def read_calfile(device_serial, sheet, variable='temperature'):
                        skiprows=35,
                        nrows=4,
                        usecols=[1, 2, 3, 4])
+        nominal_cal_values = np.array([4.91, 4.00, 2.57, 1.35])
     elif variable == 'salinity_clean':
         date_cell = (31, 4)
         rdxl_kw = dict(names=['nominal',
@@ -437,6 +441,7 @@ def read_calfile(device_serial, sheet, variable='temperature'):
                        skiprows=35,
                        nrows=4,
                        usecols=[4, 5, 6, 7])
+        nominal_cal_values = np.array([35, 15, 10, 5])
     elif variable == 'depth':
         date_cell = (49, 4)
         rdxl_kw = dict(names=['standard',
@@ -452,7 +457,7 @@ def read_calfile(device_serial, sheet, variable='temperature'):
                           'conductivity_raw',
                           'conductivity_clean',
                           'depth']
-        raise ValueError(f'read_calfile arg `variable` must be in {allowed_values}')
+        raise ValueError(f'read_calfile arg `variable` must be in {allowed_values} not {variable}')
 
     # Find the right calibration file
     # calfile, = CALFILES_LOOKUP.query(f'serial == {device_serial}')['fullpath']
@@ -464,6 +469,7 @@ def read_calfile(device_serial, sheet, variable='temperature'):
     # Manage sheet input
     if sheet == 'blank':
         array = np.zeros((rdxl_kw['nrows'], len(rdxl_kw['names'])))
+        array[:, 0] = nominal_cal_values
         data = pd.DataFrame(columns=rdxl_kw['names'], data=array)
         data.loc[:, 'time'] = 'deployment'
     else:
@@ -526,11 +532,14 @@ def read_asc(filename, data=True):
 
     # salinity column switch (presence/absence)
     salinity_column = False
+    sound_velocity_column = False
 
     # Parse header block
     for L in header_block_lines:
         if re.search('\* output salinity with each sample', L):
             salinity_column = True
+        if re.search('\* output sound velocity with each sample', L):
+            sound_velocity_column = True
         if re.search('\* FileName =', L):
             metadata['raw_file_name'] = L.split('=')[-1].strip()
         if re.search('\* sample interval =', L):
@@ -542,8 +551,9 @@ def read_asc(filename, data=True):
     for L in variable_block_lines:
         # Serial number
         if re.search('\* SBE[0-9]+', L):
-            metadata['serial'] = L.split()[-1]
             metadata['device'] = re.findall('SBE[0-9]+', L)[0]
+            sbe_number, = re.findall('SBE([0-9]+).*', L)
+            metadata['serial'] = f'{int(sbe_number):03d}{L.split()[-1]}'
 
         # Variable columns and metadata['units']
         if re.search('\* temperature', L):
@@ -552,9 +562,6 @@ def read_asc(filename, data=True):
         if re.search('\* conductivity', L):
             metadata['names'].append('conductivity')
             metadata['units'].append('S/m')  # assumed
-            if salinity_column is True:
-                metadata['names'].append('salinity')
-                metadata['units'].append('psu')  # assumed
         if re.search('\* pressure', L):
             metadata['names'].append('pressure')
             metadata['units'].append('dbar')  # assumed
@@ -562,10 +569,7 @@ def read_asc(filename, data=True):
             metadata['names'].append('depth')
             metadata['units'].append('m')  # assumed
         if re.search('\* rtc', L):
-            metadata['names'].append('date')
-            metadata['units'].append('')
-            metadata['names'].append('hour')
-            metadata['units'].append('')
+            time_column = True
 
         # Temperature calibration coefficients
         if re.search('^\*\s+TA0 =', L):
@@ -592,6 +596,21 @@ def read_asc(filename, data=True):
             metadata['CalHeader']['CCAL_TCOR'] = float(L.split()[-1])
         if re.search('^\*\s+WBOTC =', L):
             metadata['CalHeader']['CCAL_WBOTC'] = float(L.split()[-1])
+
+    # These columns are typically not defined in the variables section
+    if salinity_column is True:
+        metadata['names'].append('salinity')
+        metadata['units'].append('psu')  # assumed
+    if sound_velocity_column is True:
+        metadata['names'].append('sound_velocity')
+        metadata['units'].append('m/s')  # assumed
+    
+    # except for time that is usually last ... this is not great
+    if time_column is True:
+        metadata['names'].append('date')
+        metadata['units'].append('')
+        metadata['names'].append('hour')
+        metadata['units'].append('')            
 
     # read file data
     if data is True:
@@ -805,6 +824,7 @@ def read_cnv(FNAME,
                      names=md['names'],
                      na_values=md['missing_values'],
                      nrows=nrows,
+                     encoding='latin-1',
                      **kw_read_csv)
 
     # Detect and manage Julian days

@@ -171,10 +171,10 @@ def get_calibration_data_setup(variable, header):
                 calibrations = {'ok': True, 'pre': (f'{variable}_raw', year - 2), 'post': (f'{variable}_raw', year)}
             # Post deployment is on a new device (single calibration)
             elif mli_cal['single_year']:
-                calibrations = {'ok': True, 'pre': (variable, 'blank'), 'post': (variable, year)}
+                calibrations = {'ok': True, 'pre': (f'{variable}_raw', 'blank'), 'post': (f'{variable}_raw', year)}
             # Pre deployment calibration does not exists
             else:
-                calibrations = {'ok': False, 'pre': (variable, None), 'post': (variable, None)}
+                calibrations = {'ok': False, 'pre': (f'{variable}_raw', None), 'post': (f'{variable}_raw', None)}
 
         # Post deployment calibration exists (the year after deployment year)
         elif mli_cal[year + 1][f'{variable}_raw_calibration']:
@@ -192,14 +192,18 @@ def get_calibration_data_setup(variable, header):
                 calibrations = {'ok': True, 'pre': (f'{variable}_raw', year - 2), 'post': (f'{variable}_raw', year + 1)}
             # Post deployment is on a new device (single calibration)
             elif mli_cal['single_year']:
-                calibrations = {'ok': True, 'pre': (variable, 'blank'), 'post': (variable, year + 1)}
+                calibrations = {'ok': True, 'pre': (f'{variable}_raw', 'blank'), 'post': (f'{variable}_raw', year + 1)}
             # Pre deployment calibration does not exists
             else:
-                calibrations = {'ok': False, 'pre': (variable, None), 'post': (variable, None)}
+                calibrations = {'ok': False, 'pre': (f'{variable}_raw', None), 'post': (f'{variable}_raw', None)}
 
         # Post deployment calibration does not exist
         else:
             calibrations = {'ok': False, 'pre': (variable, None), 'post': (variable, None)}
+
+    # No pressure calibration at this stage
+    elif variable in ['pressure']:
+        calibrations = {'ok': False, 'pre': (variable, None), 'post': (variable, None)}
 
     return calibrations
 
@@ -265,6 +269,7 @@ def manage_drift_correction(data, header, calibration_data):
            to the sensor time series.
 
     """
+    print(calibration_data)
     # Loop over observed variables
     header['drift_correction'] = dict()
     for variable, source in header['data_source'].items():
