@@ -269,7 +269,6 @@ def manage_drift_correction(data, header, calibration_data):
            to the sensor time series.
 
     """
-    print(calibration_data)
     # Loop over observed variables
     header['drift_correction'] = dict()
     for variable, source in header['data_source'].items():
