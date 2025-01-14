@@ -25,6 +25,7 @@ UNITS = {
     'depth': 'meter',
     'pressure': 'decibar',
     'conductivity': 'siemens / meter',
+    r'julian days': 'days',
     'flag': ''
 }
 
@@ -39,7 +40,10 @@ SEABIRD_DIR = os.path.join('S:', 'Etalon', u'\311quipement Oc\351anographique', 
 INSTALL_DIR = os.path.dirname(__file__)
 
 # Working on LAN (local; fast) or through VPN (remote; slow)
-LOCAL = False
+LOCAL = True
+
+# Update local copies
+UPDATE = False
 
 if LOCAL:
 
@@ -59,12 +63,12 @@ if LOCAL:
                 *glob(os.path.join(SEABIRD_DIR, 'SBE-37', 'V2', '*', '*', '*.xls'))]
 
     # Make local copies of the files for when working on this project remotely
-    for F in UNPROCESSED:
-        os.system(f'copy "{F}" "{os.path.join(INSTALL_DIR, "local", "unprocessed")}"')
+    if UPDATE is True:
+        for F in UNPROCESSED:
+            os.system(f'copy "{F}" "{os.path.join(INSTALL_DIR, "local", "unprocessed")}"')
 
-    for F in CALFILES:
-        os.system(f'copy "{F}" "{os.path.join(INSTALL_DIR, "local", "calfiles")}"')
-
+        for F in CALFILES:
+            os.system(f'copy "{F}" "{os.path.join(INSTALL_DIR, "local", "calfiles")}"')
 else:
 
     # Read local copies

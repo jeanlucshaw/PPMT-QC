@@ -160,7 +160,7 @@ def generate_processing_script(input_file,
         pyfile.write("if finalized is False:\n\n")
         pyfile.write('    # Iteratively process and add flags to this block\n')
         pyfile.write("    # flag_data = {flag_value: {'variable': [index_1, index_2, ...]}}\n\n")
-        pyfile.write(f"    ds = process_ppmt(filename, dry_run=False, out_dir='{out_dir}')\n\n")
+        pyfile.write(f"    ds = process_ppmt(filename, dry_run=True, out_dir='{out_dir}')\n\n")
 
     return None
 
@@ -207,10 +207,13 @@ def run_actions(action,
     elif action == 'update':
         """ Generate processing script templates for files in the unprocessed directory that don't exist in run """
         for file_name in UNPROCESSED:
-            prospect_file_name = standard_file_name_from_input_file(file_name)
-            if not os.path.exists(os.path.join(run_dir, f'{prospect_file_name}.py')):
-                print(f'generating {prospect_file_name} for input {file_name}')
-                generate_processing_script(file_name, run_dir=run_dir, out_dir=out_dir)
+            try:
+                prospect_file_name = standard_file_name_from_input_file(file_name)
+                if not os.path.exists(os.path.join(run_dir, f'{prospect_file_name}.py')):
+                    print(f'generating {prospect_file_name} for input {file_name}')
+                    generate_processing_script(file_name, run_dir=run_dir, out_dir=out_dir)
+            except Exception as e:
+                print(f'Error in generating a processing script for {file_name}: {e}')
     elif action == 'run':
         """ Excute all the processing scripts """
         pass

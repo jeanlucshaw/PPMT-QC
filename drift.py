@@ -230,7 +230,8 @@ def interpolate_deviation(caldata, data, param, time='time'):
 
     """
     # Create the deviation interpolant
-    caldata.loc[:, 'time_num'] = timestamp2numeric(caldata.time)
+    caldata.loc[:, 'time_num'] = timestamp2numeric(caldata.time)  # represent time as a number
+    caldata = caldata.query('~standard.isnull()')                 # ensure there are no missing values
     interpolant = LNDI(caldata[['time_num', 'standard']], caldata['deviation'])
 
     # Calculate the interpolated drift time series

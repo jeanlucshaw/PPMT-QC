@@ -1,3 +1,4 @@
+import numpy as np
 from ppmt.__init__ import THRESHOLDS, INSTALL_DIR
 import pandas as pd
 import matplotlib.transforms as transforms
@@ -29,7 +30,22 @@ def get_station_climatology(variable, header):
     daily_clim = get_variable_climatology(variable)
     station_id = f'{header["site_unique_id"]}{header["instrument_unique_id"]}'[:4]
     station_clim = daily_clim.query(f'station_id == "{station_id}"')
-    return station_clim
+
+    """
+    The code below avoids trying to access a DOY index that does not exist when plotting
+    """
+    # Blank full year template
+    blank_dtypes = ['int', 'float', 'float', 'int', 'float', 'float', 'int', 'float', 'float', 'int', 'str']
+    blank = pd.DataFrame({col_: pd.Series(dtype=dt_)
+                          for col_, dt_
+                          in zip(station_clim.keys(), blank_dtypes)})
+    blank['dayofyear'] = np.arange(1, 367)
+    blank = blank.set_index('dayofyear')
+
+    # Merge template and data
+    blank.update(station_clim.set_index('dayofyear'))
+
+    return blank.reset_index()
 
 
 def get_timeseries_climatology(station_clim, time, n_std=2):

@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import re
 import os
-from ppmt.__init__ import CALFILES_LOOKUP, INSTALL_DIR
+from ppmt.__init__ import CALFILES_LOOKUP, INSTALL_DIR, LOCAL, TOP
 from ppmt.seabird_names import seabird_name_to_unit
 
 # ----------
@@ -450,6 +450,7 @@ def read_calfile(device_serial, sheet, variable='temperature'):
                        skiprows=55,
                        nrows=10,
                        usecols=[4, 5, 6])
+        nominal_cal_values = np.array([0, 7, 70, 140, 205, 275, 345, np.nan, np.nan, 0])
     else:
         allowed_values = ['temperature',
                           'salinity_raw',
@@ -928,8 +929,10 @@ def read_suivi(year):
         sheet = 'Feuil1'
 
     # Read the file
-    #filepath = '%s\Liste suivi thermographe\ppmt%d.xlsx' % (TOP, year)
-    filepath = os.path.join(INSTALL_DIR, 'local', 'suivi', 'ppmt%d.xlsx' % year)
+    if LOCAL is True:
+        filepath = os.path.join(TOP, r'Liste suivi thermographe', f'ppmt{year}.xlsx')
+    else:
+        filepath = os.path.join(INSTALL_DIR, 'local', 'suivi', 'ppmt%d.xlsx' % year)
     suivi = pd.read_excel(filepath,
                           sheet_name=sheet,
                           names=suivi_columns.keys(),
