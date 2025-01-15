@@ -317,10 +317,12 @@ def plot_processed(data,
         ax[0].text(pd.Timestamp(header['trip_recovery_real_date']), 1.05, 'Recovery', ha='center', transform=trans)
 
         # (Panel 1): annotations and plot formatting
+        serial = header["device_serial"]
         long_name = header["site_long_name"]
         station_id = f'{header["site_unique_id"]}{header["instrument_unique_id"]}'
-        depth = f'{header["site_depth"]}m'
-        ax[0].set_title(f'{long_name}; {station_id}; {depth}')
+        site_depth = f'{header["site_depth"]}m'
+        inst_depth = f'{header["instrument_depth"]}m'
+        ax[0].set_title(f'{serial}; {long_name}; {station_id}; site {site_depth}; instrument {inst_depth}')
         ax[0].set(ylabel=f'{variable.capitalize()}')
 
         # (Panel 2): interpolated sensor drift and thresholds
