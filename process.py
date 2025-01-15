@@ -54,7 +54,28 @@ def standard_file_name_from_input_file(input_file):
 def process_ppmt(file_name,
                  flag_data=None,
                  dry_run=True,
-                 out_dir=None):
+                 out_dir=None,
+                 year_pre=None):
+    """
+    Parameters
+    ----------
+    file_name : str
+        path and name of the PPMT raw file (.csv, .cnv, .asc) to process
+    flag_data : dict or None
+        instructions on how to flag data, e.g., `{flag_value: {'variable': [index_1, index_2, ...]}}`
+    dry_run : bool
+        show the plot of the processed data and the path where you would save the output file, but don't save.
+    out_dir : str
+        path of the directory where to save the processed files
+    year_pre: int or None
+        the year to use for pre-deployment calibration (if user-specified)
+
+    Returns
+    -------
+    dataset : xarray.Dataset
+        containing the data structure saved to netCDF as the output file.
+
+    """
 
     # -------------------------------
     # Read data file and its metadata
@@ -72,7 +93,7 @@ def process_ppmt(file_name,
     data = data.query(f'"{start_date}" < time < "{end_date}"').reset_index()
 
     # Get the calibrations for this device
-    calibration_data = get_calibration_data(header)
+    calibration_data = get_calibration_data(header, year_pre=year_pre)
 
     # Drift correction
     data, header = manage_drift_correction(data, header, calibration_data)

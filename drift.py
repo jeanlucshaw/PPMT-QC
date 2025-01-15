@@ -1,6 +1,6 @@
 from ppmt.__init__ import TIME_ORIGIN, THRESHOLDS, CALFILES_LOOKUP
 from scipy.interpolate import LinearNDInterpolator as LNDI
-from ppmt.reader import read_calfile
+from ppmt.reader import read_calfile, probe_calfile
 import pandas as pd
 import numpy as np
 
@@ -32,7 +32,7 @@ def timestamp2numeric(timestamp):
 # ---------
 
 
-def get_calibration_data(header):
+def get_calibration_data(header, year_pre=None):
     """
     Get the best available calibration data for this device
 
@@ -40,6 +40,8 @@ def get_calibration_data(header):
     ----------
     header : dict
         output of `input.manage_file_types`
+    year_pre : None or int
+        passed to `get_calibration_data_setup`; the year to use for pre-deployment calibration
 
     Returns
     -------
@@ -53,7 +55,7 @@ def get_calibration_data(header):
     # Loop over observed variables
     for variable, source in header['data_source'].items():
         if source == 'observation':
-            calibrations = get_calibration_data_setup(variable, header)
+            calibrations = get_calibration_data_setup(variable, header, year_pre=year_pre)
 
             # Check that appropriate calibration data are available
             if calibrations['ok']:
@@ -87,7 +89,9 @@ def get_calibration_data(header):
     return calibration_data
 
 
-def get_calibration_data_setup(variable, header):
+def get_calibration_data_setup(variable,
+                               header,
+                               year_pre=None):
     """
     Determine which (raw/clean) calibration and year combination to correct drift on variable
 
@@ -97,6 +101,8 @@ def get_calibration_data_setup(variable, header):
         one of `temperature`, `salinity`, `conductivity`, `depth`
     header : dict
         output of `input.manage_file_types`
+    year_pre : None or int
+        user specified year to use for the pre-deployment calibration
 
     Returns
     -------
@@ -108,6 +114,8 @@ def get_calibration_data_setup(variable, header):
     # For readability
     year = header['deployment_year']
     mli_cal = header['mli_calibration']
+    if isinstance(year_pre, int):
+        mli_cal_year_pre = probe_calfile(header['device_serial'], year_pre)
 
     # ------------------------------------------------------------------
     # Temperature and depth are together because they have simpler logic
@@ -117,8 +125,11 @@ def get_calibration_data_setup(variable, header):
         # Post deployment calibration exists (on deployment year)
         if mli_cal[year][f'{variable}_calibration']:
             """ post deployment exist """
+            # Pre deployment calibration year is user specified
+            if isinstance(year_pre, int) and mli_cal_year_pre[f'{variable}_calibration']:
+                calibrations = {'ok': True, 'pre': (variable, year_pre), 'post': (variable, year)}
             # Pre deployment calibration exists (one year back)
-            if mli_cal[year - 1][f'{variable}_calibration']:
+            elif mli_cal[year - 1][f'{variable}_calibration']:
                 calibrations = {'ok': True, 'pre': (variable, year - 1), 'post': (variable, year)}
             # Pre deployment calibration exists (two years back)
             elif mli_cal[year - 2][f'{variable}_calibration']:
@@ -133,8 +144,11 @@ def get_calibration_data_setup(variable, header):
         # Post deployment calibration exists (the year after deployment year)
         elif mli_cal[year + 1][f'{variable}_calibration']:
             """ post deployment exist """
+            # Pre deployment calibration year is user specified
+            if isinstance(year_pre, int)  and mli_cal_year_pre[f'{variable}_calibration']:
+                calibrations = {'ok': True, 'pre': (variable, year_pre), 'post': (variable, year + 1)}
             # Pre deployment calibration exists (one year back)
-            if mli_cal[year - 1][f'{variable}_calibration']:
+            elif mli_cal[year - 1][f'{variable}_calibration']:
                 calibrations = {'ok': True, 'pre': (variable, year - 1), 'post': (variable, year + 1)}
             # Pre deployment calibration exists (two years back)
             elif mli_cal[year - 2][f'{variable}_calibration']:
@@ -157,8 +171,13 @@ def get_calibration_data_setup(variable, header):
     elif variable in ['salinity', 'conductivity']:
         # Post deployment calibration exists (on deployment year)
         if mli_cal[year][f'{variable}_raw_calibration']:
+            # Pre deployment calibration year is user specified
+            if isinstance(year_pre, int) and mli_cal_year_pre[f'{variable}_clean_calibration']:
+                calibrations = {'ok': True, 'pre': (f'{variable}_clean', year_pre), 'post': (f'{variable}_raw', year)}
+            elif isinstance(year_pre, int) and mli_cal_year_pre[f'{variable}_raw_calibration']:
+                calibrations = {'ok': True, 'pre': (f'{variable}_raw', year_pre), 'post': (f'{variable}_raw', year)}
             # Pre deployment calibration exists (one year back; clean)
-            if mli_cal[year - 1][f'{variable}_clean_calibration']:
+            elif mli_cal[year - 1][f'{variable}_clean_calibration']:
                 calibrations = {'ok': True, 'pre': (f'{variable}_clean', year - 1), 'post': (f'{variable}_raw', year)}
             # Pre deployment calibration exists (one year back; raw)
             elif mli_cal[year - 1][f'{variable}_raw_calibration']:
@@ -178,8 +197,13 @@ def get_calibration_data_setup(variable, header):
 
         # Post deployment calibration exists (the year after deployment year)
         elif mli_cal[year + 1][f'{variable}_raw_calibration']:
+            # Pre deployment calibration year is user specified
+            if isinstance(year_pre, int) and mli_cal_year_pre[f'{variable}_clean_calibration']:
+                calibrations = {'ok': True, 'pre': (f'{variable}_clean', year_pre), 'post': (f'{variable}_raw', year + 1)}
+            elif isinstance(year_pre, int) and mli_cal_year_pre[f'{variable}_raw_calibration']:
+                calibrations = {'ok': True, 'pre': (f'{variable}_raw', year_pre), 'post': (f'{variable}_raw', year + 1)}
             # Pre deployment calibration exists (one year back; clean)
-            if mli_cal[year - 1][f'{variable}_clean_calibration']:
+            elif mli_cal[year - 1][f'{variable}_clean_calibration']:
                 calibrations = {'ok': True, 'pre': (f'{variable}_clean', year - 1), 'post': (f'{variable}_raw', year + 1)}
             # Pre deployment calibration exists (one year back; raw)
             elif mli_cal[year - 1][f'{variable}_raw_calibration']:
