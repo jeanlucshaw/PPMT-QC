@@ -470,8 +470,10 @@ def read_calfile(device_serial, sheet, variable='temperature'):
     # Manage sheet input
     if sheet == 'blank':
         array = np.zeros((rdxl_kw['nrows'], len(rdxl_kw['names'])))
-        array[:, 0] = nominal_cal_values
         data = pd.DataFrame(columns=rdxl_kw['names'], data=array)
+        data.loc[:, 'nominal'] = nominal_cal_values
+        data.loc[:, 'standard'] = nominal_cal_values
+        data.loc[:, 'instrument'] = nominal_cal_values
         data.loc[:, 'time'] = 'deployment'
     else:
         # Ensure the requested deployment year calibration exists

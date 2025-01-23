@@ -55,7 +55,8 @@ def process_ppmt(file_name,
                  flag_data=None,
                  dry_run=True,
                  out_dir=None,
-                 year_pre=None):
+                 year_pre=None,
+                 comment=None):
     """
     Parameters
     ----------
@@ -69,6 +70,8 @@ def process_ppmt(file_name,
         path of the directory where to save the processed files
     year_pre: int or None
         the year to use for pre-deployment calibration (if user-specified)
+    comment : str or None
+        add a comment about the processing as a global attribute to the output file
 
     Returns
     -------
@@ -140,8 +143,14 @@ def process_ppmt(file_name,
 
     # Save output or print what you would save
     if dry_run is True:
+        if isinstance(comment, str):
+            print(comment)
         print(output_path)
     else:
+        if isinstance(comment, str):
+            ds.attrs['comments'] = comment
+        else:
+            ds.attrs['comments'] = ''
         save_dataset(output_path, ds, variables='minimal')
 
     return ds
